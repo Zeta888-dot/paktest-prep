@@ -8,28 +8,42 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 export async function POST(req: Request) {
   try {
-    const { topic, count = 5 } = await req.json()
+    const { topic, count = 5, test } = await req.json()
 
     const [vec] = await embedChunks([topic])
     const vecStr = `[${vec.join(",")}]`
 
-    const results = await db.execute(sql`
-      SELECT content FROM chunks
-      ORDER BY embedding <=> ${vecStr}::vector
-      LIMIT 3
-    `)
+    const results = test
+      ? await db.execute(sql`
+          SELECT c.content FROM chunks c
+          JOIN documents d ON c.document_id = d.id
+          WHERE d.test_name = ${test}
+          ORDER BY c.embedding <=> ${vecStr}::vector
+          LIMIT 3
+        `)
+      : await db.execute(sql`
+          SELECT content FROM chunks
+          ORDER BY embedding <=> ${vecStr}::vector
+          LIMIT 3
+        `)
     const context = results.map((r) => r.content as string).join("\n\n")
 
     if (!context.trim()) {
       return NextResponse.json(
-        { error: "No material uploaded yet. Please upload a PDF or image first." },
+        {
+          error: test
+            ? `No material uploaded for "${test}" yet. Upload it first or switch to Syllabus.`
+            : "No material uploaded yet. Please upload a PDF or image first.",
+        },
         { status: 400 }
       )
     }
 
+    const examLine = test ? `These questions are for the "${test}" exam — match its difficulty level.\n` : ""
+
     const prompt = `You are an expert for Pakistani competitive exams. Using ONLY the study material provided below, create ${count} multiple-choice questions (MCQs) about: "${topic}".
 
-STRICT RULES:
+${examLine}STRICT RULES:
 - Use ONLY the information from the provided material. Do NOT make up facts.
 - Each question must have exactly 4 options (A, B, C, D).
 - Only ONE correct answer per question.
@@ -58,7 +72,7 @@ JSON format:
     })
 
     let text = res.text ?? '{"questions":[]}'
-    
+
     text = text.trim()
     if (text.startsWith("```json")) text = text.slice(7)
     if (text.startsWith("```")) text = text.slice(3)

@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData()
     const file = form.get("file") as File | null
+    const testName = (form.get("testName") as string) || null
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 })
 
     const buffer = Buffer.from(await file.arrayBuffer())
@@ -17,7 +18,10 @@ export async function POST(req: Request) {
 
     const embeddings = await embedChunks(texts)
 
-    const [doc] = await db.insert(documents).values({ name: file.name }).returning()
+    const [doc] = await db
+      .insert(documents)
+      .values({ name: file.name, testName })
+      .returning()
     await db.insert(chunks).values(
       texts.map((content, i) => ({
         documentId: doc.id,

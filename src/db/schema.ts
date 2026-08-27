@@ -4,6 +4,7 @@ export const documents = pgTable("documents", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   pageCount: integer("page_count"),
+  testName: text("test_name"),
   createdAt: timestamp("created_at").defaultNow(),
 })
 

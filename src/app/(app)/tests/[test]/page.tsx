@@ -20,6 +20,8 @@ import {
   Share2,
   Loader2,
   Check,
+  BookOpen,
+  FolderOpen,
 } from "lucide-react"
 
 type Question = {
@@ -84,6 +86,7 @@ export default function TestPracticePage() {
   const [source, setSource] = useState<"syllabus" | "material">("syllabus")
   const [count, setCount] = useState(5)
   const [ready, setReady] = useState(false)
+  const [started, setStarted] = useState(false)
 
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
@@ -140,9 +143,9 @@ export default function TestPracticePage() {
   }, [testName, source, count])
 
   useEffect(() => {
-    if (!ready) return
+    if (!ready || !started) return
     loadQuestions()
-  }, [ready, loadQuestions])
+  }, [ready, started, loadQuestions])
 
   const q = questions[index]
   const answered = picked !== null
@@ -229,6 +232,45 @@ export default function TestPracticePage() {
     } finally {
       setSharing(false)
     }
+  }
+
+  if (!started) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
+          <p className="mt-2 text-muted-foreground">Questions kahan se generate karein?</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <button
+            onClick={() => {
+              setSource("syllabus")
+              setStarted(true)
+            }}
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+          >
+            <span className="inline-block rounded-lg bg-blue-400/10 p-2 text-blue-400">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
+            <p className="mt-1 text-sm text-muted-foreground">Official syllabus ki base pe AI-generated MCQs.</p>
+          </button>
+          <button
+            onClick={() => {
+              setSource("material")
+              setStarted(true)
+            }}
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+          >
+            <span className="inline-block rounded-lg bg-purple-400/10 p-2 text-purple-400">
+              <FolderOpen className="h-5 w-5" />
+            </span>
+            <div className="mt-3 font-medium text-card-foreground">From My Material</div>
+            <p className="mt-1 text-sm text-muted-foreground">Is test ke liye upload kiye gaye notes se MCQs.</p>
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
