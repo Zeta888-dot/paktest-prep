@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
+import { EmptyState } from "@/components/ui/empty-state"
 import {
   MessageCircle,
   ThumbsUp,
@@ -10,6 +11,7 @@ import {
   Send,
   CornerDownRight,
   Search,
+  Flame,
 } from "lucide-react"
 
 type Post = {
@@ -17,6 +19,7 @@ type Post = {
   author: string
   title: string
   body: string
+  likes: number
   createdAt: string
 }
 
@@ -85,7 +88,7 @@ export default function ForumPage() {
   const [replyBody, setReplyBody] = useState("")
   const [replies, setReplies] = useState<Record<string, Reply[]>>({})
   const [query, setQuery] = useState("")
-  const [sort, setSort] = useState<"new" | "old">("new")
+  const [sort, setSort] = useState<"new" | "old" | "top">("new")
 
   useEffect(() => {
     refresh()
@@ -127,13 +130,22 @@ export default function ForumPage() {
   }
 
   function toggleLike(postId: string) {
-    setLikedPosts((prev) => {
-      const next = new Set(prev)
-      if (next.has(postId)) next.delete(postId)
-      else next.add(postId)
-      localStorage.setItem("forum-likes", JSON.stringify([...next]))
-      return next
-    })
+    const wasLiked = likedPosts.has(postId)
+    const next = new Set(likedPosts)
+    if (wasLiked) next.delete(postId)
+    else next.add(postId)
+    setLikedPosts(next)
+    localStorage.setItem("forum-likes", JSON.stringify([...next]))
+    setList((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, likes: Math.max((p.likes ?? 0) + (wasLiked ? -1 : 1), 0) } : p
+      )
+    )
+    fetch("/api/forum", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: postId, liked: !wasLiked }),
+    }).catch(() => {})
   }
 
   function handleReply(postId: string) {
@@ -153,15 +165,15 @@ export default function ForumPage() {
     setReplyingTo(null)
   }
 
-  const visible = list
-    .filter((p) =>
-      (p.title + " " + p.body + " " + p.author).toLowerCase().includes(query.toLowerCase())
-    )
-    .sort((a, b) =>
-      sort === "new"
-        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    )
+  const filtered = list.filter((p) =>
+    (p.title + " " + p.body + " " + p.author).toLowerCase().includes(query.toLowerCase())
+  )
+
+  const visible = [...filtered].sort((a, b) => {
+    if (sort === "top") return (b.likes ?? 0) - (a.likes ?? 0)
+    if (sort === "old") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
 
   return (
     <div className="space-y-8 animate-fade-up">
@@ -181,7 +193,7 @@ export default function ForumPage() {
           />
         </div>
         <div className="flex gap-2">
-          {(["new", "old"] as const).map((s) => (
+          {(["new", "old", "top"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setSort(s)}
@@ -191,7 +203,7 @@ export default function ForumPage() {
                   : "border border-border text-muted-foreground hover:bg-accent"
               }`}
             >
-              {s === "new" ? "Newest" : "Oldest"}
+              {s === "new" ? "Newest" : s === "old" ? "Oldest" : "Top"}
             </button>
           ))}
         </div>
@@ -235,12 +247,11 @@ export default function ForumPage() {
             ))}
           </div>
         ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
-            <MessageCircle className="h-10 w-10 text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              {query ? "No discussions match your search." : "No discussions yet. Start the first one!"}
-            </p>
-          </div>
+          <EmptyState
+            icon={MessageCircle}
+            title={query ? "No matches found" : "No discussions yet"}
+            desc={query ? "Try a different search term." : "Start the first discussion and help fellow aspirants."}
+          />
         ) : (
           visible.map((p) => {
             const postReplies = replies[p.id] ?? []
@@ -257,7 +268,14 @@ export default function ForumPage() {
                         {timeAgo(p.createdAt)}
                       </span>
                     </div>
-                    <h3 className="mt-1 font-semibold text-foreground">{p.title}</h3>
+                    <h3 className="mt-1 font-semibold text-foreground">
+                      {p.title}
+                      {(p.likes ?? 0) >= 3 && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-400/10 px-2 py-0.5 text-[10px] font-medium text-orange-400 align-middle">
+                          <Flame className="h-3 w-3" /> Trending
+                        </span>
+                      )}
+                    </h3>
                     <pre className="mt-1 whitespace-pre-wrap font-sans text-sm text-muted-foreground">{p.body}</pre>
 
                     <div className="mt-4 flex items-center gap-4">
@@ -270,7 +288,7 @@ export default function ForumPage() {
                         }`}
                       >
                         <ThumbsUp className={`h-3.5 w-3.5 ${isLiked ? "fill-current" : ""}`} />
-                        {isLiked ? "Liked" : "Like"}
+                        {isLiked ? "Liked" : "Like"} · {p.likes ?? 0}
                       </button>
                       <button
                         onClick={() => setReplyingTo(replyingTo === p.id ? null : p.id)}

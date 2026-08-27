@@ -11,8 +11,11 @@ import {
   BookOpen,
   TrendingUp,
   Flame,
+  AlertTriangle,
+  Clock,
 } from "lucide-react"
 import { loadSettings } from "@/lib/settings"
+import { EmptyState } from "@/components/ui/empty-state"
 
 type HistoryRow = {
   id: string
@@ -20,6 +23,7 @@ type HistoryRow = {
   source: string
   correct: number
   total: number
+  duration: number | null
   createdAt: string
 }
 
@@ -38,6 +42,17 @@ function timeAgo(date: string) {
     if (count >= 1) return `${count} ${interval.label}${count > 1 ? "s" : ""} ago`
   }
   return "Just now"
+}
+
+function formatDuration(seconds: number) {
+  if (!seconds) return "0m"
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  if (mins === 0) return `${secs}s`
+  if (mins < 60) return `${mins}m ${secs}s`
+  const hours = Math.floor(mins / 60)
+  const remMins = mins % 60
+  return `${hours}h ${remMins}m`
 }
 
 function accuracyColor(pct: number) {
@@ -64,6 +79,23 @@ function calcStreak(rows: HistoryRow[]) {
   return streak
 }
 
+function summarize(rows: HistoryRow[]) {
+  const byTest: Record<string, { correct: number; total: number; attempts: number }> = {}
+  for (const r of rows) {
+    if (!byTest[r.testName]) byTest[r.testName] = { correct: 0, total: 0, attempts: 0 }
+    byTest[r.testName].correct += r.correct
+    byTest[r.testName].total += r.total
+    byTest[r.testName].attempts += 1
+  }
+  return Object.entries(byTest)
+    .map(([name, v]) => ({
+      name,
+      attempts: v.attempts,
+      pct: v.total ? Math.round((v.correct / v.total) * 100) : 0,
+    }))
+    .sort((a, b) => b.attempts - a.attempts)
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [rows, setRows] = useState<HistoryRow[]>([])
@@ -87,10 +119,14 @@ export default function DashboardPage() {
     ? Math.round((rows.reduce((a, r) => a + r.correct, 0) / answered) * 100)
     : 0
   const streak = calcStreak(rows)
+  const totalDuration = rows.reduce((a, r) => a + (r.duration ?? 0), 0)
+  const breakdown = summarize(rows)
+  const weak = breakdown.filter((t) => t.pct < 50).sort((a, b) => a.pct - b.pct)
 
   const stats = [
     { icon: BarChart3, label: "Attempts", value: attempts, color: "bg-blue-400/10 text-blue-400" },
     { icon: HelpCircle, label: "Questions", value: answered, color: "bg-purple-400/10 text-purple-400" },
+    { icon: Clock, label: "Study Time", value: formatDuration(totalDuration), color: "bg-cyan-400/10 text-cyan-400" },
     { icon: Target, label: "Accuracy", value: `${accuracy}%`, color: "bg-emerald-400/10 text-emerald-400" },
     { icon: Flame, label: "Day Streak", value: streak, color: "bg-orange-400/10 text-orange-400" },
   ]
@@ -106,7 +142,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-muted-foreground">Select a test to start practicing.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((s) => (
           <div
             key={s.label}
@@ -155,6 +191,69 @@ export default function DashboardPage() {
         </section>
       )}
 
+      {breakdown.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-medium text-foreground">Test Breakdown</h2>
+          </div>
+          <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+            {breakdown.map((t) => (
+              <div key={t.name}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="font-medium text-card-foreground">{t.name}</span>
+                  <span className="text-muted-foreground">
+                    {t.pct}% · {t.attempts} attempt{t.attempts > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full ${barColor(t.pct)}`}
+                    style={{ width: `${Math.max(t.pct, 2)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {weak.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <h2 className="font-medium text-foreground">Needs Improvement</h2>
+            <span className="text-xs text-muted-foreground">(below 50% accuracy)</span>
+          </div>
+          <div className="space-y-2">
+            {weak.map((t) => (
+              <div
+                key={t.name}
+                className="flex items-center justify-between rounded-xl border border-amber-400/20 bg-amber-400/5 px-5 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <span className="block truncate font-medium text-card-foreground">{t.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t.attempts} attempt{t.attempts > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                    {t.pct}%
+                  </span>
+                  <button
+                    onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
+                    className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition hover:opacity-90"
+                  >
+                    Practice
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <button
         onClick={() => router.push("/tests")}
         className="group flex w-full items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/20 sm:w-auto sm:inline-flex sm:gap-4"
@@ -190,16 +289,19 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
-            <History className="h-10 w-10 text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">No attempts yet. Take your first test!</p>
-            <button
-              onClick={() => router.push("/tests")}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-            >
-              Browse Tests <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
+          <EmptyState
+            icon={History}
+            title="No attempts yet"
+            desc="Take your first test and start building your streak."
+            action={
+              <button
+                onClick={() => router.push("/tests")}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+              >
+                Browse Tests <ArrowRight className="h-4 w-4" />
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-2">
             {rows.slice(0, 5).map((r) => {
@@ -213,6 +315,7 @@ export default function DashboardPage() {
                     <span className="block truncate font-medium text-card-foreground">{r.testName}</span>
                     <span className="text-xs text-muted-foreground">
                       {r.source === "material" ? "From Material" : "From Syllabus"} · {timeAgo(r.createdAt)}
+                      {r.duration ? ` · ${formatDuration(r.duration)}` : ""}
                     </span>
                   </div>
                   <div className="flex shrink-0 items-center gap-3 text-muted-foreground">

@@ -98,6 +98,7 @@ export default function TestPracticePage() {
   const [showShare, setShowShare] = useState(false)
   const [caption, setCaption] = useState("")
   const submitted = useRef(false)
+  const startedAtRef = useRef<number>(0)
 
   useEffect(() => {
     const s = loadSettings()
@@ -130,7 +131,8 @@ export default function TestPracticePage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to generate questions")
-      setQuestions(data.questions ?? [])
+setQuestions(data.questions ?? [])
+startedAtRef.current = Date.now()
     } catch (e: any) {
       setError(e.message || "Something went wrong")
     } finally {
@@ -146,6 +148,22 @@ export default function TestPracticePage() {
   const q = questions[index]
   const answered = picked !== null
   const isCorrect = answered && q !== undefined && picked === q.answer
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === "INPUT" || tag === "TEXTAREA") return
+      if (!started || loading || error || done || reviewMode || !q) return
+      if (["1", "2", "3", "4"].includes(e.key) && !answered) {
+        const opt = q.options[Number(e.key) - 1]
+        if (opt) pick(opt)
+      } else if (e.key === "Enter" && answered) {
+        next()
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  })
 
   function pick(opt: string) {
     if (answered) return
@@ -166,12 +184,15 @@ export default function TestPracticePage() {
         fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            testName,
-            source,
-            correct: correctCountRef.current,
-            total: questions.length,
-          }),
+         body: JSON.stringify({
+  testName,
+  source,
+  correct: correctCountRef.current,
+  total: questions.length,
+  duration: startedAtRef.current
+    ? Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000))
+    : null,
+}),
         })
       }
     } else {
@@ -183,7 +204,13 @@ export default function TestPracticePage() {
 
   function toggleBookmark() {
     if (!q) return
-    setSaved(toggleSaved(testName, q.question))
+    setSaved(
+      toggleSaved(testName, q.question, {
+        options: q.options,
+        answer: q.answer,
+        explanation: q.explanation,
+      })
+    )
   }
 
   function restart() {
@@ -499,6 +526,10 @@ export default function TestPracticePage() {
           )
         })}
       </div>
+
+      {!answered && (
+        <p className="text-xs text-muted-foreground">Tip: Press 1-4 to answer, Enter for next</p>
+      )}
 
       {answered && (
         <div

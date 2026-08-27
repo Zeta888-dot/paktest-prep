@@ -25,18 +25,22 @@ export const questions = pgTable("questions", {
   source: text("source"),
   createdAt: timestamp("created_at").defaultNow(),
 })
+
 export const history = pgTable("history", {
   id: uuid("id").primaryKey().defaultRandom(),
   testName: text("test_name").notNull(),
   source: text("source").notNull(),
   correct: integer("correct").notNull(),
   total: integer("total").notNull(),
+  duration: integer("duration"),
   createdAt: timestamp("created_at").defaultNow(),
 })
+
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   author: text("author").notNull(),
   title: text("title").notNull(),
   body: text("body").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  likes: integer("likes").notNull().default(0),
 })
