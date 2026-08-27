@@ -85,6 +85,7 @@ export default function TestPracticePage() {
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
   const [correctCount, setCorrectCount] = useState(0)
+  const correctCountRef = useRef(0) // <-- FIX 1: sync ref
   const [done, setDone] = useState(false)
   const [showExpl, setShowExpl] = useState(false)
   const [bookmarks, setBookmarks] = useState<BookmarkedQ[]>([])
@@ -105,6 +106,7 @@ export default function TestPracticePage() {
     setIndex(0)
     setPicked(null)
     setCorrectCount(0)
+    correctCountRef.current = 0 // <-- FIX 2: reset ref
     setDone(false)
     setShowExpl(false)
     setBookmarks([])
@@ -142,7 +144,10 @@ export default function TestPracticePage() {
     setPicked(opt)
     setShowExpl(false)
     setAnswers((prev) => ({ ...prev, [index]: opt }))
-    if (opt === q.answer) setCorrectCount((c) => c + 1)
+    if (opt === q.answer) {
+      setCorrectCount((c) => c + 1)
+      correctCountRef.current += 1 // <-- FIX 3: update ref sync
+    }
   }
 
   function next() {
@@ -153,7 +158,12 @@ export default function TestPracticePage() {
         fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ testName, source, correct: correctCount, total: questions.length }),
+          body: JSON.stringify({
+            testName,
+            source,
+            correct: correctCountRef.current, // <-- FIX 4: use ref (always accurate)
+            total: questions.length,
+          }),
         })
       }
     } else {
@@ -220,13 +230,13 @@ export default function TestPracticePage() {
   }
 
   if (done && !reviewMode) {
-    const pct = questions.length ? Math.round((correctCount / questions.length) * 100) : 0
+    const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-fade-up">
         <Trophy className="h-14 w-14 text-yellow-400" />
         <h1 className="mt-6 text-3xl font-semibold text-foreground">Test Complete!</h1>
         <p className="mt-2 text-muted-foreground">
-          You scored {correctCount}/{questions.length} ({pct}%)
+          You scored {correctCountRef.current}/{questions.length} ({pct}%)
         </p>
         {bookmarks.length > 0 && (
           <p className="mt-1 text-sm text-muted-foreground">
