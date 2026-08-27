@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
+  Search,
   Shield,
   FileText,
   Keyboard,
@@ -14,50 +16,95 @@ import {
   BadgeCheck,
   Landmark,
   ArrowUpRight,
+  SearchX,
 } from "lucide-react"
 
 const tests = [
-  { name: "Police Constable (KPK / Islamabad)", icon: Shield, color: "bg-blue-400/10 text-blue-400" },
-  { name: "Junior / Senior Clerk", icon: FileText, color: "bg-amber-400/10 text-amber-400" },
-  { name: "Stenotypist", icon: Keyboard, color: "bg-pink-400/10 text-pink-400" },
-  { name: "ASF", icon: Shield, color: "bg-cyan-400/10 text-cyan-400" },
-  { name: "Air Force Commission Posts", icon: Plane, color: "bg-sky-400/10 text-sky-400" },
-  { name: "MDCAT", icon: HeartPulse, color: "bg-red-400/10 text-red-400" },
-  { name: "ECAT", icon: Cog, color: "bg-orange-400/10 text-orange-400" },
-  { name: "SST (Senior Subject Specialist)", icon: GraduationCap, color: "bg-purple-400/10 text-purple-400" },
-  { name: "CT (Certified Teacher)", icon: BookOpen, color: "bg-emerald-400/10 text-emerald-400" },
-  { name: "PST (Primary School Teacher)", icon: School, color: "bg-teal-400/10 text-teal-400" },
-  { name: "PASI (Assistant Sub Inspector)", icon: BadgeCheck, color: "bg-indigo-400/10 text-indigo-400" },
-  { name: "CSS & PMS", icon: Landmark, color: "bg-yellow-400/10 text-yellow-400" },
+  { name: "Police Constable (KPK / Islamabad)", icon: Shield, color: "bg-blue-400/10 text-blue-400", category: "Defense & Police" },
+  { name: "Junior / Senior Clerk", icon: FileText, color: "bg-amber-400/10 text-amber-400", category: "Clerical & Admin" },
+  { name: "Stenotypist", icon: Keyboard, color: "bg-pink-400/10 text-pink-400", category: "Clerical & Admin" },
+  { name: "ASF", icon: Shield, color: "bg-cyan-400/10 text-cyan-400", category: "Defense & Police" },
+  { name: "Air Force Commission Posts", icon: Plane, color: "bg-sky-400/10 text-sky-400", category: "Defense & Police" },
+  { name: "MDCAT", icon: HeartPulse, color: "bg-red-400/10 text-red-400", category: "Medical & Engineering" },
+  { name: "ECAT", icon: Cog, color: "bg-orange-400/10 text-orange-400", category: "Medical & Engineering" },
+  { name: "SST (Senior Subject Specialist)", icon: GraduationCap, color: "bg-purple-400/10 text-purple-400", category: "Teaching" },
+  { name: "CT (Certified Teacher)", icon: BookOpen, color: "bg-emerald-400/10 text-emerald-400", category: "Teaching" },
+  { name: "PST (Primary School Teacher)", icon: School, color: "bg-teal-400/10 text-teal-400", category: "Teaching" },
+  { name: "PASI (Assistant Sub Inspector)", icon: BadgeCheck, color: "bg-indigo-400/10 text-indigo-400", category: "Defense & Police" },
+  { name: "CSS & PMS", icon: Landmark, color: "bg-yellow-400/10 text-yellow-400", category: "Civil Services" },
 ]
+
+const categories = ["All", "Defense & Police", "Clerical & Admin", "Teaching", "Medical & Engineering", "Civil Services"]
 
 export default function TestsPage() {
   const router = useRouter()
+  const [query, setQuery] = useState("")
+  const [category, setCategory] = useState("All")
+
+  const filtered = tests.filter((t) => {
+    const matchQ = t.name.toLowerCase().includes(query.toLowerCase())
+    const matchC = category === "All" || t.category === category
+    return matchQ && matchC
+  })
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Practice Tests</h1>
-        <p className="mt-2 text-white/50">Select your target test to generate MCQs.</p>
+        <h1 className="text-2xl font-semibold text-foreground">Practice Tests</h1>
+        <p className="mt-2 text-muted-foreground">Select your target test to generate MCQs.</p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tests.map((t) => (
+
+      <div className="relative w-full sm:max-w-xs">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search tests..."
+          className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {categories.map((c) => (
           <button
-            key={t.name}
-            onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-            className="group flex items-start justify-between rounded-xl border border-white/10 bg-white/[0.03] p-5 text-left transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.06]"
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              category === c
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+            }`}
           >
-            <div>
-              <span className={`inline-block rounded-lg p-2 ${t.color}`}>
-                <t.icon className="h-4 w-4" />
-              </span>
-              <div className="mt-3 text-sm font-medium text-white">{t.name}</div>
-              <div className="mt-1 text-xs text-white/40">Generate MCQs</div>
-            </div>
-            <ArrowUpRight className="h-4 w-4 text-white/20 transition group-hover:text-white" />
+            {c}
           </button>
         ))}
       </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
+          <SearchX className="h-10 w-10 text-muted-foreground/50" />
+          <p className="mt-3 text-sm text-muted-foreground">No tests match your search.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((t) => (
+            <button
+              key={t.name}
+              onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
+              className="group flex items-start justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+            >
+              <div>
+                <span className={`inline-block rounded-lg p-2 ${t.color}`}>
+                  <t.icon className="h-4 w-4" />
+                </span>
+                <div className="mt-3 text-sm font-medium text-card-foreground">{t.name}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{t.category}</div>
+              </div>
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 transition group-hover:text-foreground" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
-import { MessageCircle, ThumbsUp, Clock, Send, CornerDownRight } from "lucide-react"
+import {
+  MessageCircle,
+  ThumbsUp,
+  Clock,
+  Send,
+  CornerDownRight,
+  Search,
+} from "lucide-react"
 
 type Post = {
   id: string
@@ -56,7 +63,10 @@ function Avatar({ name, className = "" }: { name: string; className?: string }) 
     "bg-pink-400/20 text-pink-400",
     "bg-cyan-400/20 text-cyan-400",
   ]
-  const color = colors[name.charCodeAt(0) % colors.length]
+  const color =
+    !name || name === "Anonymous"
+      ? "bg-emerald-500 text-white"
+      : colors[name.charCodeAt(0) % colors.length]
   return (
     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${color} ${className}`}>
       {getInitials(name) || "?"}
@@ -74,6 +84,8 @@ export default function ForumPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyBody, setReplyBody] = useState("")
   const [replies, setReplies] = useState<Record<string, Reply[]>>({})
+  const [query, setQuery] = useState("")
+  const [sort, setSort] = useState<"new" | "old">("new")
 
   useEffect(() => {
     refresh()
@@ -141,11 +153,48 @@ export default function ForumPage() {
     setReplyingTo(null)
   }
 
+  const visible = list
+    .filter((p) =>
+      (p.title + " " + p.body + " " + p.author).toLowerCase().includes(query.toLowerCase())
+    )
+    .sort((a, b) =>
+      sort === "new"
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    )
+
   return (
     <div className="space-y-8 animate-fade-up">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Forum</h1>
         <p className="mt-1 text-muted-foreground">Discuss preparation tips with other aspirants.</p>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search discussions..."
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <div className="flex gap-2">
+          {(["new", "old"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSort(s)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                sort === s
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {s === "new" ? "Newest" : "Oldest"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <section className="space-y-3 rounded-xl border border-border bg-card p-6">
@@ -185,13 +234,15 @@ export default function ForumPage() {
               </div>
             ))}
           </div>
-        ) : list.length === 0 ? (
+        ) : visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-12 text-center">
             <MessageCircle className="h-10 w-10 text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">No discussions yet. Start the first one!</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {query ? "No discussions match your search." : "No discussions yet. Start the first one!"}
+            </p>
           </div>
         ) : (
-          list.map((p) => {
+          visible.map((p) => {
             const postReplies = replies[p.id] ?? []
             const isLiked = likedPosts.has(p.id)
             return (
@@ -207,7 +258,7 @@ export default function ForumPage() {
                       </span>
                     </div>
                     <h3 className="mt-1 font-semibold text-foreground">{p.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{p.body}</p>
+                    <pre className="mt-1 whitespace-pre-wrap font-sans text-sm text-muted-foreground">{p.body}</pre>
 
                     <div className="mt-4 flex items-center gap-4">
                       <button

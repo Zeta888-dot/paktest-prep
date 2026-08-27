@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { BarChart3, HelpCircle, Target, History, ArrowRight, BookOpen } from "lucide-react"
+import {
+  BarChart3,
+  HelpCircle,
+  Target,
+  History,
+  ArrowRight,
+  BookOpen,
+  TrendingUp,
+} from "lucide-react"
 import { loadSettings } from "@/lib/settings"
 
 type HistoryRow = {
@@ -37,6 +45,12 @@ function accuracyColor(pct: number) {
   return "bg-red-400/10 text-red-400 border-red-400/20"
 }
 
+function barColor(pct: number) {
+  if (pct >= 80) return "bg-emerald-400"
+  if (pct >= 50) return "bg-amber-400"
+  return "bg-red-400"
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [rows, setRows] = useState<HistoryRow[]>([])
@@ -66,6 +80,8 @@ export default function DashboardPage() {
     { icon: Target, label: "Accuracy", value: `${accuracy}%`, color: "bg-emerald-400/10 text-emerald-400" },
   ]
 
+  const chartRows = [...rows].slice(0, 7).reverse()
+
   return (
     <div className="space-y-8 animate-fade-up">
       <div>
@@ -91,6 +107,38 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {chartRows.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <h2 className="font-medium text-foreground">Performance</h2>
+            <span className="text-xs text-muted-foreground">(last {chartRows.length} attempts)</span>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex h-36 items-end gap-2">
+              {chartRows.map((r) => {
+                const pct = Math.round((r.correct / r.total) * 100)
+                return (
+                  <div
+                    key={r.id}
+                    className="flex h-full flex-1 flex-col items-center gap-1"
+                    title={`${r.testName} — ${pct}%`}
+                  >
+                    <div className="flex h-full w-full items-end">
+                      <div
+                        className={`w-full rounded-t-md transition-all hover:opacity-80 ${barColor(pct)}`}
+                        style={{ height: `${Math.max(pct, 4)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{pct}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       <button
         onClick={() => router.push("/tests")}

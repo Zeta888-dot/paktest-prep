@@ -17,6 +17,9 @@ import {
   AlertCircle,
   Eye,
   Home,
+  Share2,
+  Loader2,
+  Check,
 } from "lucide-react"
 
 type Question = {
@@ -85,12 +88,16 @@ export default function TestPracticePage() {
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
   const [correctCount, setCorrectCount] = useState(0)
-  const correctCountRef = useRef(0) // <-- FIX 1: sync ref
+  const correctCountRef = useRef(0)
   const [done, setDone] = useState(false)
   const [showExpl, setShowExpl] = useState(false)
   const [bookmarks, setBookmarks] = useState<BookmarkedQ[]>([])
   const [reviewMode, setReviewMode] = useState(false)
   const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [sharing, setSharing] = useState(false)
+  const [shared, setShared] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [caption, setCaption] = useState("")
   const submitted = useRef(false)
 
   useEffect(() => {
@@ -106,12 +113,14 @@ export default function TestPracticePage() {
     setIndex(0)
     setPicked(null)
     setCorrectCount(0)
-    correctCountRef.current = 0 // <-- FIX 2: reset ref
+    correctCountRef.current = 0
     setDone(false)
     setShowExpl(false)
     setBookmarks([])
     setReviewMode(false)
     setAnswers({})
+    setShared(false)
+    setShowShare(false)
     submitted.current = false
     try {
       const url = source === "material" ? "/api/generate-rag" : "/api/generate"
@@ -146,7 +155,7 @@ export default function TestPracticePage() {
     setAnswers((prev) => ({ ...prev, [index]: opt }))
     if (opt === q.answer) {
       setCorrectCount((c) => c + 1)
-      correctCountRef.current += 1 // <-- FIX 3: update ref sync
+      correctCountRef.current += 1
     }
   }
 
@@ -161,7 +170,7 @@ export default function TestPracticePage() {
           body: JSON.stringify({
             testName,
             source,
-            correct: correctCountRef.current, // <-- FIX 4: use ref (always accurate)
+            correct: correctCountRef.current,
             total: questions.length,
           }),
         })
@@ -190,6 +199,35 @@ export default function TestPracticePage() {
     if (!answered && q) {
       setPicked("__timeout__")
       setAnswers((prev) => ({ ...prev, [index]: "__timeout__" }))
+    }
+  }
+
+  function openShare() {
+    const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
+    setCaption(`Spent some time on ${testName} today. ${pct}% score. Each attempt teaches me something new.`)
+    setShowShare(true)
+  }
+
+  async function shareToForum() {
+    if (!questions.length || !caption.trim()) return
+    setSharing(true)
+    try {
+      const pct = Math.round((correctCountRef.current / questions.length) * 100)
+      await fetch("/api/forum", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author: loadSettings().displayName || "Anonymous",
+          title: `${testName} Practice — ${pct}%`,
+          body: caption.trim(),
+        }),
+      })
+      setShared(true)
+      setShowShare(false)
+    } catch {
+      // ignore
+    } finally {
+      setSharing(false)
     }
   }
 
@@ -243,16 +281,51 @@ export default function TestPracticePage() {
             {bookmarks.length} question{bookmarks.length > 1 ? "s" : ""} bookmarked for review
           </p>
         )}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button onClick={restart} className="gap-2">
-            <RotateCcw className="h-4 w-4" /> Practice Again
-          </Button>
-          <Button variant="outline" onClick={() => setReviewMode(true)} className="gap-2">
-            <Eye className="h-4 w-4" /> Review Answers
-          </Button>
-          <Button variant="outline" onClick={() => router.push("/tests")}>
-            Back to Tests
-          </Button>
+
+        <div className="mt-8 w-full max-w-sm space-y-3">
+          {showShare ? (
+            <div className="space-y-3 rounded-xl border border-border bg-card p-4 text-left">
+              <div className="text-sm font-medium text-card-foreground">Share to Forum</div>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={shareToForum} disabled={sharing || !caption.trim()} className="gap-2">
+                  {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />} Post
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowShare(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button onClick={openShare} disabled={sharing || shared} className="w-full gap-2">
+              {shared ? (
+                <>
+                  <Check className="h-4 w-4" /> Shared to Forum
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4" /> Share Result on Forum
+                </>
+              )}
+            </Button>
+          )}
+
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button onClick={restart} className="gap-2">
+              <RotateCcw className="h-4 w-4" /> Practice Again
+            </Button>
+            <Button variant="outline" onClick={() => setReviewMode(true)} className="gap-2">
+              <Eye className="h-4 w-4" /> Review Answers
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/tests")}>
+              Back to Tests
+            </Button>
+          </div>
         </div>
       </div>
     )

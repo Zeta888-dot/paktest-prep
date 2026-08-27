@@ -24,8 +24,8 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-white/10 bg-black p-4">
-      <Link href="/" className="mb-8 flex items-center gap-2 px-2 text-lg font-semibold text-white">
+    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-sidebar p-4">
+      <Link href="/" className="mb-8 flex items-center gap-2 px-2 text-lg font-semibold text-foreground">
         <GraduationCap className="h-5 w-5" />
         PakTest Prep
       </Link>
@@ -38,7 +38,9 @@ export function Sidebar() {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                active ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white"
+                active
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -47,7 +49,7 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="mt-auto px-3 text-xs text-white/30">© 2026 PakTest Prep</div>
+      <div className="mt-auto px-3 text-xs text-muted-foreground">© 2026 PakTest Prep</div>
     </aside>
   )
 }
