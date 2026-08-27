@@ -10,6 +10,7 @@ import {
   ArrowRight,
   BookOpen,
   TrendingUp,
+  Flame,
 } from "lucide-react"
 import { loadSettings } from "@/lib/settings"
 
@@ -51,6 +52,18 @@ function barColor(pct: number) {
   return "bg-red-400"
 }
 
+function calcStreak(rows: HistoryRow[]) {
+  const days = new Set(rows.map((r) => new Date(r.createdAt).toDateString()))
+  let streak = 0
+  const d = new Date()
+  if (!days.has(d.toDateString())) d.setDate(d.getDate() - 1)
+  while (days.has(d.toDateString())) {
+    streak++
+    d.setDate(d.getDate() - 1)
+  }
+  return streak
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [rows, setRows] = useState<HistoryRow[]>([])
@@ -73,11 +86,13 @@ export default function DashboardPage() {
   const accuracy = answered
     ? Math.round((rows.reduce((a, r) => a + r.correct, 0) / answered) * 100)
     : 0
+  const streak = calcStreak(rows)
 
   const stats = [
     { icon: BarChart3, label: "Attempts", value: attempts, color: "bg-blue-400/10 text-blue-400" },
     { icon: HelpCircle, label: "Questions", value: answered, color: "bg-purple-400/10 text-purple-400" },
     { icon: Target, label: "Accuracy", value: `${accuracy}%`, color: "bg-emerald-400/10 text-emerald-400" },
+    { icon: Flame, label: "Day Streak", value: streak, color: "bg-orange-400/10 text-orange-400" },
   ]
 
   const chartRows = [...rows].slice(0, 7).reverse()
@@ -91,7 +106,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-muted-foreground">Select a test to start practicing.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <div
             key={s.label}

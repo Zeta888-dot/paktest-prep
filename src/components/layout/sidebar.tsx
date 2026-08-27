@@ -9,6 +9,7 @@ import {
   MessagesSquare,
   Settings,
   GraduationCap,
+  Bookmark,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -18,6 +19,7 @@ const navItems = [
   { label: "Upload Material", href: "/upload", icon: Upload },
   { label: "Forum", href: "/forum", icon: MessagesSquare },
   { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Saved Questions", href: "/saved", icon: Bookmark },
 ]
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {

@@ -176,9 +176,6 @@ export default function SettingsPage() {
             )
           })}
         </div>
-        <p className="text-xs text-muted-foreground">
-          Light mode colors require updating <code className="rounded bg-muted px-1 py-0.5">globals.css</code> in the next step.
-        </p>
       </section>
 
       <section className="space-y-4 rounded-xl border border-border bg-card p-6">

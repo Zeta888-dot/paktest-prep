@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
+import { loadBookmarks, toggleSaved, type SavedQuestion } from "@/lib/bookmarks"
 import {
   X,
   CheckCircle2,
@@ -29,11 +30,6 @@ type Question = {
   options: string[]
   answer: string
   explanation: string
-}
-
-type BookmarkedQ = {
-  index: number
-  question: string
 }
 
 function TimerBar({ duration, onTimeout, keyReset }: { duration: number; onTimeout: () => void; keyReset: number }) {
@@ -94,7 +90,7 @@ export default function TestPracticePage() {
   const correctCountRef = useRef(0)
   const [done, setDone] = useState(false)
   const [showExpl, setShowExpl] = useState(false)
-  const [bookmarks, setBookmarks] = useState<BookmarkedQ[]>([])
+  const [saved, setSaved] = useState<SavedQuestion[]>([])
   const [reviewMode, setReviewMode] = useState(false)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [sharing, setSharing] = useState(false)
@@ -108,6 +104,7 @@ export default function TestPracticePage() {
     setSource(s.defaultSource)
     setCount(s.questionsPerTest)
     setReady(true)
+    setSaved(loadBookmarks())
   }, [])
 
   const loadQuestions = useCallback(async () => {
@@ -119,7 +116,6 @@ export default function TestPracticePage() {
     correctCountRef.current = 0
     setDone(false)
     setShowExpl(false)
-    setBookmarks([])
     setReviewMode(false)
     setAnswers({})
     setShared(false)
@@ -187,11 +183,7 @@ export default function TestPracticePage() {
 
   function toggleBookmark() {
     if (!q) return
-    setBookmarks((prev) => {
-      const exists = prev.find((b) => b.index === index)
-      if (exists) return prev.filter((b) => b.index !== index)
-      return [...prev, { index, question: q.question }]
-    })
+    setSaved(toggleSaved(testName, q.question))
   }
 
   function restart() {
@@ -309,6 +301,8 @@ export default function TestPracticePage() {
     )
   }
 
+  const savedForTest = saved.filter((b) => b.test === testName)
+
   if (done && !reviewMode) {
     const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
     return (
@@ -318,9 +312,9 @@ export default function TestPracticePage() {
         <p className="mt-2 text-muted-foreground">
           You scored {correctCountRef.current}/{questions.length} ({pct}%)
         </p>
-        {bookmarks.length > 0 && (
+        {savedForTest.length > 0 && (
           <p className="mt-1 text-sm text-muted-foreground">
-            {bookmarks.length} question{bookmarks.length > 1 ? "s" : ""} bookmarked for review
+            {savedForTest.length} question{savedForTest.length > 1 ? "s" : ""} saved for review
           </p>
         )}
 
@@ -450,7 +444,7 @@ export default function TestPracticePage() {
 
   if (!q) return <div className="text-muted-foreground">No questions.</div>
 
-  const isBookmarked = bookmarks.some((b) => b.index === index)
+  const isBookmarked = saved.some((b) => b.test === testName && b.question === q.question)
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -478,7 +472,7 @@ export default function TestPracticePage() {
           className={`shrink-0 rounded-lg p-2 transition ${
             isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           }`}
-          title={isBookmarked ? "Remove bookmark" : "Bookmark this question"}
+          title={isBookmarked ? "Remove from saved" : "Save this question"}
         >
           <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
         </button>
