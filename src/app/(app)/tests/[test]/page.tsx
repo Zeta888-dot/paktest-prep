@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
@@ -12,9 +12,63 @@ import {
   RotateCcw,
   ArrowRight,
   ChevronDown,
+  Bookmark,
+  Timer,
+  AlertCircle,
+  Eye,
+  Home,
 } from "lucide-react"
 
-type Question = { question: string; options: string[]; answer: string; explanation: string }
+type Question = {
+  question: string
+  options: string[]
+  answer: string
+  explanation: string
+}
+
+type BookmarkedQ = {
+  index: number
+  question: string
+}
+
+function TimerBar({ duration, onTimeout, keyReset }: { duration: number; onTimeout: () => void; keyReset: number }) {
+  const [left, setLeft] = useState(duration)
+
+  useEffect(() => {
+    setLeft(duration)
+    const interval = setInterval(() => {
+      setLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          onTimeout()
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [keyReset, duration, onTimeout])
+
+  const pct = (left / duration) * 100
+  const barColor = pct > 50 ? "bg-emerald-400" : pct > 20 ? "bg-amber-400" : "bg-red-400"
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Timer className="h-3 w-3" /> {left}s
+        </span>
+        <span>Auto-skip in {left}s</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full transition-all duration-1000 ease-linear ${barColor}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
 
 export default function TestPracticePage() {
   const params = useParams<{ test: string }>()
@@ -23,6 +77,7 @@ export default function TestPracticePage() {
 
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [source, setSource] = useState<"syllabus" | "material">("syllabus")
   const [count, setCount] = useState(5)
   const [ready, setReady] = useState(false)
@@ -32,6 +87,9 @@ export default function TestPracticePage() {
   const [correctCount, setCorrectCount] = useState(0)
   const [done, setDone] = useState(false)
   const [showExpl, setShowExpl] = useState(false)
+  const [bookmarks, setBookmarks] = useState<BookmarkedQ[]>([])
+  const [reviewMode, setReviewMode] = useState(false)
+  const [answers, setAnswers] = useState<Record<number, string>>({})
   const submitted = useRef(false)
 
   useEffect(() => {
@@ -41,42 +99,49 @@ export default function TestPracticePage() {
     setReady(true)
   }, [])
 
+  const loadQuestions = useCallback(async () => {
+    setLoading(true)
+    setError("")
+    setIndex(0)
+    setPicked(null)
+    setCorrectCount(0)
+    setDone(false)
+    setShowExpl(false)
+    setBookmarks([])
+    setReviewMode(false)
+    setAnswers({})
+    submitted.current = false
+    try {
+      const url = source === "material" ? "/api/generate-rag" : "/api/generate"
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test: testName, topic: testName, count }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to generate questions")
+      setQuestions(data.questions ?? [])
+    } catch (e: any) {
+      setError(e.message || "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }, [testName, source, count])
+
   useEffect(() => {
     if (!ready) return
-    async function load() {
-      setLoading(true)
-      setIndex(0)
-      setPicked(null)
-      setCorrectCount(0)
-      setDone(false)
-      setShowExpl(false)
-      submitted.current = false
-      try {
-        const url = source === "material" ? "/api/generate-rag" : "/api/generate"
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ test: testName, topic: testName, count }),
-        })
-        const data = await res.json()
-        setQuestions(data.questions ?? [])
-      } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [testName, source, count, ready])
+    loadQuestions()
+  }, [ready, loadQuestions])
 
   const q = questions[index]
   const answered = picked !== null
-  const isCorrect = picked !== null && q !== undefined && picked === q.answer
+  const isCorrect = answered && q !== undefined && picked === q.answer
 
   function pick(opt: string) {
     if (answered) return
     setPicked(opt)
     setShowExpl(false)
+    setAnswers((prev) => ({ ...prev, [index]: opt }))
     if (opt === q.answer) setCorrectCount((c) => c + 1)
   }
 
@@ -98,31 +163,53 @@ export default function TestPracticePage() {
     }
   }
 
+  function toggleBookmark() {
+    if (!q) return
+    setBookmarks((prev) => {
+      const exists = prev.find((b) => b.index === index)
+      if (exists) return prev.filter((b) => b.index !== index)
+      return [...prev, { index, question: q.question }]
+    })
+  }
+
   function restart() {
-    setIndex(0)
-    setPicked(null)
-    setCorrectCount(0)
-    setDone(false)
-    setShowExpl(false)
-    submitted.current = false
+    loadQuestions()
+  }
+
+  function handleTimeout() {
+    if (!answered && q) {
+      setPicked("__timeout__")
+      setAnswers((prev) => ({ ...prev, [index]: "__timeout__" }))
+    }
   }
 
   if (loading) {
-    return <div className="text-white/50">Generating MCQs for {testName}... Please wait.</div>
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div className="flex items-center gap-4">
+          <div className="h-5 w-5 animate-pulse rounded bg-muted" />
+          <div className="h-2 flex-1 animate-pulse rounded-full bg-muted" />
+          <div className="h-4 w-12 animate-pulse rounded bg-muted" />
+        </div>
+        <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      </div>
+    )
   }
 
-  if (done) {
-    const pct = Math.round((correctCount / questions.length) * 100)
+  if (error) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
-        <Trophy className="h-14 w-14 text-yellow-400" />
-        <h1 className="mt-6 text-3xl font-semibold text-white">Test Complete!</h1>
-        <p className="mt-2 text-white/50">
-          You scored {correctCount}/{questions.length} ({pct}%)
-        </p>
-        <div className="mt-8 flex gap-3">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <h2 className="mt-4 text-lg font-semibold text-foreground">Oops!</h2>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
+        <div className="mt-6 flex gap-3">
           <Button onClick={restart} className="gap-2">
-            <RotateCcw className="h-4 w-4" /> Practice Again
+            <RotateCcw className="h-4 w-4" /> Try Again
           </Button>
           <Button variant="outline" onClick={() => router.push("/tests")}>
             Back to Tests
@@ -132,54 +219,154 @@ export default function TestPracticePage() {
     )
   }
 
-  if (!q) return <div className="text-white/50">No questions.</div>
+  if (done && !reviewMode) {
+    const pct = questions.length ? Math.round((correctCount / questions.length) * 100) : 0
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-fade-up">
+        <Trophy className="h-14 w-14 text-yellow-400" />
+        <h1 className="mt-6 text-3xl font-semibold text-foreground">Test Complete!</h1>
+        <p className="mt-2 text-muted-foreground">
+          You scored {correctCount}/{questions.length} ({pct}%)
+        </p>
+        {bookmarks.length > 0 && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {bookmarks.length} question{bookmarks.length > 1 ? "s" : ""} bookmarked for review
+          </p>
+        )}
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Button onClick={restart} className="gap-2">
+            <RotateCcw className="h-4 w-4" /> Practice Again
+          </Button>
+          <Button variant="outline" onClick={() => setReviewMode(true)} className="gap-2">
+            <Eye className="h-4 w-4" /> Review Answers
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/tests")}>
+            Back to Tests
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (reviewMode) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-foreground">Review Answers</h2>
+          <Button variant="outline" size="sm" onClick={() => setReviewMode(false)} className="gap-2">
+            <X className="h-4 w-4" /> Close
+          </Button>
+        </div>
+        <div className="space-y-4">
+          {questions.map((qItem, i) => {
+            const userAns = answers[i]
+            const correct = userAns === qItem.answer
+            const timedOut = userAns === "__timeout__"
+            return (
+              <div
+                key={i}
+                className={`rounded-xl border p-4 ${
+                  correct
+                    ? "border-emerald-400/30 bg-emerald-400/5"
+                    : timedOut
+                    ? "border-amber-400/30 bg-amber-400/5"
+                    : "border-red-400/30 bg-red-400/5"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-medium text-foreground">
+                    {i + 1}. {qItem.question}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      correct
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : timedOut
+                        ? "bg-amber-400/10 text-amber-400"
+                        : "bg-red-400/10 text-red-400"
+                    }`}
+                  >
+                    {correct ? "Correct" : timedOut ? "Timed Out" : "Wrong"}
+                  </span>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {qItem.options.map((opt, j) => {
+                    const isUser = userAns === opt
+                    const isAns = opt === qItem.answer
+                    let cls = "text-muted-foreground"
+                    if (isAns) cls = "font-medium text-emerald-400"
+                    else if (isUser && !isAns) cls = "font-medium text-red-400 line-through"
+                    return (
+                      <div key={j} className={`text-sm ${cls}`}>
+                        {String.fromCharCode(65 + j)}. {opt}
+                        {isAns && " ✓"}
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">
+                  {qItem.explanation}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex justify-center gap-3 pb-8">
+          <Button onClick={restart} className="gap-2">
+            <RotateCcw className="h-4 w-4" /> Practice Again
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/dashboard")} className="gap-2">
+            <Home className="h-4 w-4" /> Dashboard
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!q) return <div className="text-muted-foreground">No questions.</div>
+
+  const isBookmarked = bookmarks.some((b) => b.index === index)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.push("/tests")} className="text-white/40 transition hover:text-white">
+        <button onClick={() => router.push("/tests")} className="text-muted-foreground transition hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-white transition-all duration-500"
+            className="h-full rounded-full bg-primary transition-all duration-500"
             style={{ width: `${((index + (answered ? 1 : 0)) / questions.length) * 100}%` }}
           />
         </div>
-        <span className="text-sm text-white/50">
+        <span className="text-sm text-muted-foreground">
           {index + 1}/{questions.length}
         </span>
       </div>
 
-      <div className="flex gap-2">
+      <TimerBar duration={45} onTimeout={handleTimeout} keyReset={index} />
+
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="text-xl font-semibold text-foreground">{q.question}</h1>
         <button
-          onClick={() => setSource("syllabus")}
-          className={`rounded-full px-3 py-1 text-xs transition ${
-            source === "syllabus" ? "bg-white text-black" : "border border-white/15 text-white/60 hover:bg-white/5"
+          onClick={toggleBookmark}
+          className={`shrink-0 rounded-lg p-2 transition ${
+            isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           }`}
+          title={isBookmarked ? "Remove bookmark" : "Bookmark this question"}
         >
-          From Syllabus
-        </button>
-        <button
-          onClick={() => setSource("material")}
-          className={`rounded-full px-3 py-1 text-xs transition ${
-            source === "material" ? "bg-white text-black" : "border border-white/15 text-white/60 hover:bg-white/5"
-          }`}
-        >
-          From My Material
+          <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
         </button>
       </div>
-
-      <h1 className="text-xl font-semibold text-white">{q.question}</h1>
 
       <div className="space-y-3">
         {q.options.map((opt, j) => {
           const isPick = picked === opt
           const isAns = opt === q.answer
-          let cls = "border-white/10 bg-white/[0.03] text-white hover:border-white/30"
+          let cls = "border-border bg-card text-foreground hover:border-border/80 hover:bg-accent"
           if (answered && isAns) cls = "border-emerald-400/50 bg-emerald-400/10 text-emerald-300"
           else if (answered && isPick && !isAns) cls = "border-red-400/50 bg-red-400/10 text-red-300"
-          else if (answered) cls = "border-white/5 bg-white/[0.02] text-white/30"
+          else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
             <button
               key={j}
@@ -187,6 +374,7 @@ export default function TestPracticePage() {
               disabled={answered}
               className={`w-full rounded-xl border px-5 py-3 text-left text-sm transition ${cls} disabled:cursor-not-allowed`}
             >
+              <span className="mr-2 font-medium text-muted-foreground">{String.fromCharCode(65 + j)}.</span>
               {opt}
             </button>
           )
@@ -207,13 +395,13 @@ export default function TestPracticePage() {
                 <XCircle className="h-6 w-6 shrink-0 text-red-400" />
               )}
               <span className={`font-medium ${isCorrect ? "text-emerald-300" : "text-red-300"}`}>
-                {isCorrect ? "Correct!" : "Wrong!"}
+                {isCorrect ? "Correct!" : picked === "__timeout__" ? "Time's up!" : "Wrong!"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpl(!showExpl)}
-                className="flex items-center gap-1 text-xs text-white/60 transition hover:text-white"
+                className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
               >
                 Explanation
                 <ChevronDown className={`h-4 w-4 transition-transform ${showExpl ? "rotate-180" : ""}`} />
@@ -224,7 +412,7 @@ export default function TestPracticePage() {
             </div>
           </div>
           {showExpl && (
-            <div className="mt-3 border-t border-white/10 pt-3 text-sm text-white/60">{q.explanation}</div>
+            <div className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">{q.explanation}</div>
           )}
         </div>
       )}
