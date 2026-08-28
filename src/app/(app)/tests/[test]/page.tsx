@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
 import { loadBookmarks, toggleSaved, type SavedQuestion } from "@/lib/bookmarks"
+import { getSyllabus, type Subject } from "@/lib/syllabus"
 import {
   X,
   CheckCircle2,
@@ -23,6 +24,7 @@ import {
   Check,
   BookOpen,
   FolderOpen,
+  ChevronLeft,
 } from "lucide-react"
 
 type Question = {
@@ -75,14 +77,19 @@ export default function TestPracticePage() {
   const params = useParams<{ test: string }>()
   const router = useRouter()
   const testName = decodeURIComponent(params.test ?? "")
+  const syllabus = getSyllabus(testName)
 
   const [questions, setQuestions] = useState<Question[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [source, setSource] = useState<"syllabus" | "material">("syllabus")
   const [count, setCount] = useState(5)
   const [ready, setReady] = useState(false)
-  const [started, setStarted] = useState(false)
+
+  const [phase, setPhase] = useState<"source" | "subject" | "topic" | "quiz">("source")
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
 
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
@@ -108,6 +115,10 @@ export default function TestPracticePage() {
     setSaved(loadBookmarks())
   }, [])
 
+  const topicString = selectedTopics.length > 0
+    ? `${selectedSubject?.name}: ${selectedTopics.join(", ")}`
+    : selectedSubject?.name || testName
+
   const loadQuestions = useCallback(async () => {
     setLoading(true)
     setError("")
@@ -127,33 +138,28 @@ export default function TestPracticePage() {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ test: testName, topic: testName, count }),
+        body: JSON.stringify({ test: testName, topic: topicString, count, difficulty }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to generate questions")
-setQuestions(data.questions ?? [])
-startedAtRef.current = Date.now()
+      setQuestions(data.questions ?? [])
+      startedAtRef.current = Date.now()
+      setPhase("quiz")
     } catch (e: any) {
       setError(e.message || "Something went wrong")
     } finally {
       setLoading(false)
     }
-  }, [testName, source, count])
-
-  useEffect(() => {
-    if (!ready || !started) return
-    loadQuestions()
-  }, [ready, started, loadQuestions])
+  }, [testName, source, count, topicString, difficulty])
 
   const q = questions[index]
   const answered = picked !== null
-  const isCorrect = answered && q !== undefined && picked === q.answer
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement).tagName
       if (tag === "INPUT" || tag === "TEXTAREA") return
-      if (!started || loading || error || done || reviewMode || !q) return
+      if (phase !== "quiz" || loading || error || done || reviewMode || !q) return
       if (["1", "2", "3", "4"].includes(e.key) && !answered) {
         const opt = q.options[Number(e.key) - 1]
         if (opt) pick(opt)
@@ -184,15 +190,15 @@ startedAtRef.current = Date.now()
         fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({
-  testName,
-  source,
-  correct: correctCountRef.current,
-  total: questions.length,
-  duration: startedAtRef.current
-    ? Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000))
-    : null,
-}),
+          body: JSON.stringify({
+            testName,
+            source,
+            correct: correctCountRef.current,
+            total: questions.length,
+            duration: startedAtRef.current
+              ? Math.max(1, Math.floor((Date.now() - startedAtRef.current) / 1000))
+              : null,
+          }),
         })
       }
     } else {
@@ -214,6 +220,9 @@ startedAtRef.current = Date.now()
   }
 
   function restart() {
+    setPhase(syllabus ? "subject" : "source")
+    setSelectedSubject(null)
+    setSelectedTopics([])
     loadQuestions()
   }
 
@@ -253,45 +262,22 @@ startedAtRef.current = Date.now()
     }
   }
 
-  if (!started) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
-          <p className="mt-2 text-muted-foreground">Questions kahan se generate karein?</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <button
-            onClick={() => {
-              setSource("syllabus")
-              setStarted(true)
-            }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
-          >
-            <span className="inline-block rounded-lg bg-blue-400/10 p-2 text-blue-400">
-              <BookOpen className="h-5 w-5" />
-            </span>
-            <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
-            <p className="mt-1 text-sm text-muted-foreground">Official syllabus ki base pe AI-generated MCQs.</p>
-          </button>
-          <button
-            onClick={() => {
-              setSource("material")
-              setStarted(true)
-            }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
-          >
-            <span className="inline-block rounded-lg bg-purple-400/10 p-2 text-purple-400">
-              <FolderOpen className="h-5 w-5" />
-            </span>
-            <div className="mt-3 font-medium text-card-foreground">From My Material</div>
-            <p className="mt-1 text-sm text-muted-foreground">Is test ke liye upload kiye gaye notes se MCQs.</p>
-          </button>
-        </div>
-      </div>
+  function toggleTopic(topic: string) {
+    setSelectedTopics((prev) =>
+      prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic]
     )
   }
 
+  function selectAllTopics() {
+    if (!selectedSubject) return
+    if (selectedTopics.length === selectedSubject.topics.length) {
+      setSelectedTopics([])
+    } else {
+      setSelectedTopics([...selectedSubject.topics])
+    }
+  }
+
+  // ─── Loading ───
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -310,6 +296,7 @@ startedAtRef.current = Date.now()
     )
   }
 
+  // ─── Error ──
   if (error) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
@@ -317,8 +304,8 @@ startedAtRef.current = Date.now()
         <h2 className="mt-4 text-lg font-semibold text-foreground">Oops!</h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
         <div className="mt-6 flex gap-3">
-          <Button onClick={restart} className="gap-2">
-            <RotateCcw className="h-4 w-4" /> Try Again
+          <Button onClick={() => { setError(""); if (phase === "topic") loadQuestions() }}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Try Again
           </Button>
           <Button variant="outline" onClick={() => router.push("/tests")}>
             Back to Tests
@@ -328,8 +315,174 @@ startedAtRef.current = Date.now()
     )
   }
 
+  // ─── PHASE: Source Selection ───
+  if (phase === "source") {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
+          <p className="mt-2 text-muted-foreground">Questions kahan se generate karein?</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <button
+            onClick={() => {
+              setSource("syllabus")
+              if (syllabus) setPhase("subject")
+              else loadQuestions()
+            }}
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+          >
+            <span className="inline-block rounded-lg bg-blue-400/10 p-2 text-blue-400">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
+            <p className="mt-1 text-sm text-muted-foreground">Official syllabus ki base pe AI-generated MCQs.</p>
+          </button>
+          <button
+            onClick={() => {
+              setSource("material")
+              loadQuestions()
+            }}
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+          >
+            <span className="inline-block rounded-lg bg-purple-400/10 p-2 text-purple-400">
+              <FolderOpen className="h-5 w-5" />
+            </span>
+            <div className="mt-3 font-medium text-card-foreground">From My Material</div>
+            <p className="mt-1 text-sm text-muted-foreground">Is test ke liye upload kiye gaye notes se MCQs.</p>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ─── PHASE: Subject Selection ───
+  if (phase === "subject" && syllabus) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setPhase("source")} className="text-muted-foreground hover:text-foreground transition">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
+            <p className="mt-1 text-muted-foreground">Subject select karein</p>
+          </div>
+        </div>
+        <div className="grid gap-3">
+          {syllabus.subjects.map((subj) => (
+            <button
+              key={subj.name}
+              onClick={() => {
+                setSelectedSubject(subj)
+                setSelectedTopics([])
+                setPhase("topic")
+              }}
+              className="flex items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+            >
+              <div>
+                <div className="font-medium text-card-foreground">{subj.name}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{subj.topics.length} topics</div>
+              </div>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                {subj.weightage}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ─── PHASE: Topic Selection ───
+  if (phase === "topic" && selectedSubject) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setPhase("subject")} className="text-muted-foreground hover:text-foreground transition">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{selectedSubject.name}</h1>
+            <p className="mt-1 text-muted-foreground">Topics aur difficulty select karein</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {(["easy", "medium", "hard"] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDifficulty(d)}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition ${
+                difficulty === d
+                  ? d === "easy"
+                    ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-400"
+                    : d === "medium"
+                    ? "border-amber-400/50 bg-amber-400/10 text-amber-400"
+                    : "border-red-400/50 bg-red-400/10 text-red-400"
+                  : "border-border text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={selectAllTopics}
+          className={`w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+            selectedTopics.length === selectedSubject.topics.length
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border text-muted-foreground hover:bg-accent"
+          }`}
+        >
+          {selectedTopics.length === selectedSubject.topics.length ? "✓ All Topics Selected" : "Select All Topics"}
+        </button>
+
+        <div className="grid gap-2">
+          {selectedSubject.topics.map((topic) => {
+            const isSelected = selectedTopics.includes(topic)
+            return (
+              <button
+                key={topic}
+                onClick={() => toggleTopic(topic)}
+                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
+                  isSelected
+                    ? "border-primary bg-primary/5 text-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                  }`}
+                >
+                  {isSelected && <Check className="h-3 w-3" />}
+                </span>
+                {topic}
+              </button>
+            )
+          })}
+        </div>
+
+        <Button
+          onClick={loadQuestions}
+          disabled={selectedTopics.length === 0}
+          className="w-full gap-2"
+        >
+          Generate MCQs ({selectedTopics.length} topic{selectedTopics.length > 1 ? "s" : ""}){" "}
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+    )
+  }
+
+  // ─── Quiz not started yet ───
+  if (phase !== "quiz") return null
+
   const savedForTest = saved.filter((b) => b.test === testName)
 
+  // ─── Done Screen ───
   if (done && !reviewMode) {
     const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
     return (
@@ -394,6 +547,7 @@ startedAtRef.current = Date.now()
     )
   }
 
+  // ─── Review Mode ───
   if (reviewMode) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -472,7 +626,9 @@ startedAtRef.current = Date.now()
   if (!q) return <div className="text-muted-foreground">No questions.</div>
 
   const isBookmarked = saved.some((b) => b.test === testName && b.question === q.question)
+  const isCorrect = answered && q !== undefined && picked === q.answer
 
+  // ─── Quiz UI ───
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
       <div className="flex items-center gap-4">
