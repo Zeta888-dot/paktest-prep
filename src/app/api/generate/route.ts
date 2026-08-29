@@ -29,7 +29,7 @@ REQUIREMENTS:
 5. Avoid repetitive questions — each must test a different concept
 6. Include variety: factual, conceptual, application-based
 7. For English: focus on grammar, vocabulary, tenses, voice, prepositions
-8. For Urdu: focus on grammar, synonyms/antonyms, idioms, proverbs
+8. For Urdu: focus on grammar, synonyms/antonyms, idioms, proverbs. Write all Urdu text in proper Urdu script (Arabic Urdu), never in Roman Urdu
 9. For Pak Studies: focus on history, geography, constitution, personalities
 10. For Islamiyat: focus on Quran, Hadith, Seerat, Khulafa, Islamic events
 11. For GK/Current Affairs: focus on Pakistan-centric facts, recent events

@@ -9,10 +9,14 @@ import {
   History,
   ArrowRight,
   BookOpen,
-  TrendingUp,
+  Activity,
   Flame,
   AlertTriangle,
   Clock,
+  Zap,
+  FolderOpen,
+  PenLine,
+  Timer,
 } from "lucide-react"
 import { loadSettings } from "@/lib/settings"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -96,6 +100,94 @@ function summarize(rows: HistoryRow[]) {
     .sort((a, b) => b.attempts - a.attempts)
 }
 
+function useCountUp(target: number, duration = 900) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    let start: number | null = null
+    let raf: number
+    function step(ts: number) {
+      if (start === null) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      setVal(Math.round(target * (1 - Math.pow(1 - p, 3))))
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+  return val
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  color,
+  fmt,
+}: {
+  icon: any
+  label: string
+  value: number
+  color: string
+  fmt?: (n: number) => string
+}) {
+  const n = useCountUp(value)
+  const display = fmt ? fmt(n) : `${n}`
+  return (
+    <div className="group rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/20">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className={`rounded-lg p-1.5 transition group-hover:scale-110 ${color}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+        {label}
+      </div>
+      <div className="mt-3 text-3xl font-semibold text-card-foreground">{display}</div>
+    </div>
+  )
+}
+
+function GoalRing({ done, goal }: { done: number; goal: number }) {
+  const [p, setP] = useState(0)
+  useEffect(() => {
+    const t = setTimeout(() => setP(Math.min(done / goal, 1)), 150)
+    return () => clearTimeout(t)
+  }, [done, goal])
+  const r = 42
+  const c = 2 * Math.PI * r
+  return (
+    <div className="relative h-28 w-28">
+      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="10" stroke="currentColor" className="text-muted" />
+        <circle
+          cx="50"
+          cy="50"
+          r={r}
+          fill="none"
+          strokeWidth="10"
+          strokeLinecap="round"
+          stroke="currentColor"
+          className="text-emerald-400 transition-all duration-1000 ease-out"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - p)}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xl font-bold text-foreground">{done}</span>
+        <span className="text-[10px] text-muted-foreground">of {goal}</span>
+      </div>
+    </div>
+  )
+}
+
+function sourceIcon(source: string) {
+  if (source === "material") return FolderOpen
+  if (source === "subjective") return PenLine
+  if (source === "mock") return Timer
+  return BookOpen
+}
+
+const DAILY_GOAL = 20
+const XP_PER_LEVEL = 250
+
 export default function DashboardPage() {
   const router = useRouter()
   const [rows, setRows] = useState<HistoryRow[]>([])
@@ -115,23 +207,31 @@ export default function DashboardPage() {
 
   const attempts = rows.length
   const answered = rows.reduce((a, r) => a + r.total, 0)
-  const accuracy = answered
-    ? Math.round((rows.reduce((a, r) => a + r.correct, 0) / answered) * 100)
-    : 0
+  const correctTotal = rows.reduce((a, r) => a + r.correct, 0)
+  const accuracy = answered ? Math.round((correctTotal / answered) * 100) : 0
   const streak = calcStreak(rows)
   const totalDuration = rows.reduce((a, r) => a + (r.duration ?? 0), 0)
   const breakdown = summarize(rows)
   const weak = breakdown.filter((t) => t.pct < 50).sort((a, b) => a.pct - b.pct)
 
-  const stats = [
-    { icon: BarChart3, label: "Attempts", value: attempts, color: "bg-blue-400/10 text-blue-400" },
-    { icon: HelpCircle, label: "Questions", value: answered, color: "bg-purple-400/10 text-purple-400" },
-    { icon: Clock, label: "Study Time", value: formatDuration(totalDuration), color: "bg-cyan-400/10 text-cyan-400" },
-    { icon: Target, label: "Accuracy", value: `${accuracy}%`, color: "bg-emerald-400/10 text-emerald-400" },
-    { icon: Flame, label: "Day Streak", value: streak, color: "bg-orange-400/10 text-orange-400" },
-  ]
+  const xp = correctTotal * 10
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1
+  const intoLevel = xp % XP_PER_LEVEL
 
-  const chartRows = [...rows].slice(0, 7).reverse()
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    const key = d.toDateString()
+    const dayRows = rows.filter((r) => new Date(r.createdAt).toDateString() === key)
+    return {
+      label: d.toLocaleDateString("en-US", { weekday: "narrow" }),
+      qs: dayRows.reduce((a, r) => a + r.total, 0),
+      attempts: dayRows.length,
+      isToday: i === 6,
+    }
+  })
+  const maxQs = Math.max(...week.map((w) => w.qs), 1)
+  const todayQs = week[6].qs
 
   return (
     <div className="space-y-8 animate-fade-up">
@@ -142,53 +242,101 @@ export default function DashboardPage() {
         <p className="mt-2 text-muted-foreground">Select a test to start practicing.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="group rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/20"
-          >
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className={`rounded-lg p-1.5 transition group-hover:scale-110 ${s.color}`}>
-                <s.icon className="h-4 w-4" />
+              <span className="rounded-lg bg-yellow-400/10 p-1.5 text-yellow-400">
+                <Zap className="h-4 w-4" />
               </span>
-              {s.label}
+              Level {level}
             </div>
-            <div className="mt-3 text-3xl font-semibold text-card-foreground">{s.value}</div>
+            <span className="text-xs font-medium text-yellow-400">{xp} XP</span>
           </div>
-        ))}
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-yellow-400 transition-all duration-1000"
+              style={{ width: `${Math.max((intoLevel / XP_PER_LEVEL) * 100, 2)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {XP_PER_LEVEL - intoLevel} XP to Level {level + 1}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="rounded-lg bg-emerald-400/10 p-1.5 text-emerald-400">
+                <Target className="h-4 w-4" />
+              </span>
+              Daily Goal
+            </div>
+            <p className="mt-3 text-sm font-medium text-card-foreground">
+              {todayQs >= DAILY_GOAL ? "Goal complete! Welldone!" : `${DAILY_GOAL - todayQs} questions to go`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Answer {DAILY_GOAL} questions a day</p>
+          </div>
+          <GoalRing done={todayQs} goal={DAILY_GOAL} />
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="rounded-lg bg-cyan-400/10 p-1.5 text-cyan-400">
+              <Activity className="h-4 w-4" />
+            </span>
+            This Week
+          </div>
+          <div className="mt-4 flex h-20 items-end gap-1.5">
+            {week.map((w, i) => (
+              <div
+                key={i}
+                className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                title={`${w.qs} questions, ${w.attempts} attempts`}
+              >
+                <div
+                  className={`w-full rounded-t-md transition-all duration-700 ${
+                    w.qs === 0 ? "bg-muted" : w.isToday ? "bg-cyan-400" : "bg-cyan-400/50"
+                  }`}
+                  style={{ height: `${Math.max((w.qs / maxQs) * 100, 4)}%` }}
+                />
+                <span className={`text-[10px] ${w.isToday ? "font-bold text-cyan-400" : "text-muted-foreground"}`}>
+                  {w.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {chartRows.length > 0 && (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-medium text-foreground">Performance</h2>
-            <span className="text-xs text-muted-foreground">(last {chartRows.length} attempts)</span>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-5">
-            <div className="flex h-36 items-end gap-2">
-              {chartRows.map((r) => {
-                const pct = Math.round((r.correct / r.total) * 100)
-                return (
-                  <div
-                    key={r.id}
-                    className="flex h-full flex-1 flex-col items-center gap-1"
-                    title={`${r.testName} — ${pct}%`}
-                  >
-                    <div className="flex h-full w-full items-end">
-                      <div
-                        className={`w-full rounded-t-md transition-all hover:opacity-80 ${barColor(pct)}`}
-                        style={{ height: `${Math.max(pct, 4)}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">{pct}%</span>
-                  </div>
-                )
-              })}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatCard icon={BarChart3} label="Attempts" value={attempts} color="bg-blue-400/10 text-blue-400" />
+        <StatCard icon={HelpCircle} label="Questions" value={answered} color="bg-purple-400/10 text-purple-400" />
+        <StatCard icon={Clock} label="Study Time" value={totalDuration} color="bg-cyan-400/10 text-cyan-400" fmt={formatDuration} />
+        <StatCard icon={Target} label="Accuracy" value={accuracy} color="bg-emerald-400/10 text-emerald-400" fmt={(n) => `${n}%`} />
+        <StatCard icon={Flame} label="Day Streak" value={streak} color="bg-orange-400/10 text-orange-400" />
+      </div>
+
+      {weak.length > 0 && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-400/10 to-transparent p-5">
+          <div className="flex items-center gap-3">
+            <span className="rounded-lg bg-amber-400/10 p-2 text-amber-400">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="text-sm font-medium text-foreground">Focus today: {weak[0].name}</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Accuracy {weak[0].pct}%. Just 10 minutes of practice can change that.
+              </p>
             </div>
           </div>
-        </section>
+          <button
+            onClick={() => router.push(`/tests/${encodeURIComponent(weak[0].name)}`)}
+            className="shrink-0 rounded-full bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300 active:scale-95"
+          >
+            Practice Now
+          </button>
+        </div>
       )}
 
       {breakdown.length > 0 && (
@@ -306,17 +454,23 @@ export default function DashboardPage() {
           <div className="space-y-2">
             {rows.slice(0, 5).map((r) => {
               const pct = Math.round((r.correct / r.total) * 100)
+              const SIcon = sourceIcon(r.source)
               return (
                 <div
                   key={r.id}
                   className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 text-sm transition hover:bg-accent"
                 >
-                  <div className="min-w-0">
-                    <span className="block truncate font-medium text-card-foreground">{r.testName}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {r.source === "material" ? "From Material" : "From Syllabus"} · {timeAgo(r.createdAt)}
-                      {r.duration ? ` · ${formatDuration(r.duration)}` : ""}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 rounded-lg bg-muted p-2 text-muted-foreground">
+                      <SIcon className="h-4 w-4" />
                     </span>
+                    <div className="min-w-0">
+                      <span className="block truncate font-medium text-card-foreground">{r.testName}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {r.source === "material" ? "From Material" : r.source === "subjective" ? "Part B (Subjective)" : r.source === "mock" ? "Mock Test" : "From Syllabus"} · {timeAgo(r.createdAt)}
+                        {r.duration ? ` · ${formatDuration(r.duration)}` : ""}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3 text-muted-foreground">
                     <span>

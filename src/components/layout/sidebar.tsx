@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession, signIn, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +15,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -35,6 +37,7 @@ const themeOptions = [
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
   const [theme, setTheme] = useState("dark")
+  const { data: session, status } = useSession()
 
   useEffect(() => {
     setTheme(localStorage.getItem("theme") || "dark")
@@ -77,6 +80,36 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <div className="mt-auto space-y-3 px-2">
+        {status === "authenticated" && session.user ? (
+          <div className="flex items-center gap-2 rounded-lg border border-border p-2">
+            {session.user.image ? (
+              <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                {(session.user.name ?? "U").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-foreground">{session.user.name}</div>
+              <div className="truncate text-[10px] text-muted-foreground">{session.user.email}</div>
+            </div>
+            <button
+              onClick={() => signOut()}
+              title="Sign out"
+              className="rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => signIn("google")}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            Sign in with Google
+          </button>
+        )}
+
         <div className="flex items-center gap-1 rounded-lg border border-border p-1">
           {themeOptions.map((t) => (
             <button

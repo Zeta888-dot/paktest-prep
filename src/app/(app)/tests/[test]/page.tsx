@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
 import { loadBookmarks, toggleSaved, type SavedQuestion } from "@/lib/bookmarks"
 import { getSyllabus, type Subject } from "@/lib/syllabus"
+import { Confetti } from "@/components/ui/confetti"
+import { GenerationProgress } from "@/components/ui/generation-progress"
 import {
   X,
   CheckCircle2,
@@ -25,6 +27,7 @@ import {
   BookOpen,
   FolderOpen,
   ChevronLeft,
+  PenLine,
 } from "lucide-react"
 
 type Question = {
@@ -249,7 +252,7 @@ export default function TestPracticePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           author: loadSettings().displayName || "Anonymous",
-          title: `${testName} Practice — ${pct}%`,
+          title: `${testName} Practice: ${pct}%`,
           body: caption.trim(),
         }),
       })
@@ -277,26 +280,12 @@ export default function TestPracticePage() {
     }
   }
 
-  // ─── Loading ───
+  // Loading
   if (loading) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
-        <div className="flex items-center gap-4">
-          <div className="h-5 w-5 animate-pulse rounded bg-muted" />
-          <div className="h-2 flex-1 animate-pulse rounded-full bg-muted" />
-          <div className="h-4 w-12 animate-pulse rounded bg-muted" />
-        </div>
-        <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />
-          ))}
-        </div>
-      </div>
-    )
+    return <GenerationProgress />
   }
 
-  // ─── Error ──
+  // Error
   if (error) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
@@ -315,13 +304,13 @@ export default function TestPracticePage() {
     )
   }
 
-  // ─── PHASE: Source Selection ───
+  // Phase: Source Selection
   if (phase === "source") {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
-          <p className="mt-2 text-muted-foreground">Questions kahan se generate karein?</p>
+          <p className="mt-2 text-muted-foreground">Where should we generate questions from?</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <button
@@ -330,33 +319,61 @@ export default function TestPracticePage() {
               if (syllabus) setPhase("subject")
               else loadQuestions()
             }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
           >
             <span className="inline-block rounded-lg bg-blue-400/10 p-2 text-blue-400">
               <BookOpen className="h-5 w-5" />
             </span>
             <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
-            <p className="mt-1 text-sm text-muted-foreground">Official syllabus ki base pe AI-generated MCQs.</p>
+            <p className="mt-1 text-sm text-muted-foreground">AI-generated MCQs based on the official syllabus.</p>
           </button>
           <button
             onClick={() => {
               setSource("material")
               loadQuestions()
             }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
           >
             <span className="inline-block rounded-lg bg-purple-400/10 p-2 text-purple-400">
               <FolderOpen className="h-5 w-5" />
             </span>
             <div className="mt-3 font-medium text-card-foreground">From My Material</div>
-            <p className="mt-1 text-sm text-muted-foreground">Is test ke liye upload kiye gaye notes se MCQs.</p>
+            <p className="mt-1 text-sm text-muted-foreground">MCQs from the notes you uploaded for this test.</p>
           </button>
+          {syllabus && (
+            <button
+              onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/partb`)}
+              className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
+            >
+              <span className="inline-block rounded-lg bg-emerald-400/10 p-2 text-emerald-400">
+                <PenLine className="h-5 w-5" />
+              </span>
+              <div className="mt-3 font-medium text-card-foreground">Part B (Subjective)</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Translation and sentence formation with instant checking.
+              </p>
+            </button>
+          )}
+          {syllabus && (
+            <button
+              onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/mock`)}
+              className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
+            >
+              <span className="inline-block rounded-lg bg-orange-400/10 p-2 text-orange-400">
+                <Timer className="h-5 w-5" />
+              </span>
+              <div className="mt-3 font-medium text-card-foreground">Full Mock Test</div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                100 marks, timed exam simulation with Part A and Part B.
+              </p>
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
-  // ─── PHASE: Subject Selection ───
+  // Phase: Subject Selection
   if (phase === "subject" && syllabus) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -366,7 +383,7 @@ export default function TestPracticePage() {
           </button>
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
-            <p className="mt-1 text-muted-foreground">Subject select karein</p>
+            <p className="mt-1 text-muted-foreground">Select a subject</p>
           </div>
         </div>
         <div className="grid gap-3">
@@ -378,7 +395,7 @@ export default function TestPracticePage() {
                 setSelectedTopics([])
                 setPhase("topic")
               }}
-              className="flex items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+              className="flex items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
             >
               <div>
                 <div className="font-medium text-card-foreground">{subj.name}</div>
@@ -394,7 +411,7 @@ export default function TestPracticePage() {
     )
   }
 
-  // ─── PHASE: Topic Selection ───
+  // Phase: Topic Selection
   if (phase === "topic" && selectedSubject) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -404,7 +421,7 @@ export default function TestPracticePage() {
           </button>
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{selectedSubject.name}</h1>
-            <p className="mt-1 text-muted-foreground">Topics aur difficulty select karein</p>
+            <p className="mt-1 text-muted-foreground">Select topics and difficulty</p>
           </div>
         </div>
 
@@ -413,7 +430,7 @@ export default function TestPracticePage() {
             <button
               key={d}
               onClick={() => setDifficulty(d)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition ${
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition active:scale-[0.98] ${
                 difficulty === d
                   ? d === "easy"
                     ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-400"
@@ -430,7 +447,7 @@ export default function TestPracticePage() {
 
         <button
           onClick={selectAllTopics}
-          className={`w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+          className={`w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] ${
             selectedTopics.length === selectedSubject.topics.length
               ? "border-primary bg-primary/10 text-primary"
               : "border-border text-muted-foreground hover:bg-accent"
@@ -446,7 +463,7 @@ export default function TestPracticePage() {
               <button
                 key={topic}
                 onClick={() => toggleTopic(topic)}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition ${
+                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition active:scale-[0.98] ${
                   isSelected
                     ? "border-primary bg-primary/5 text-foreground"
                     : "border-border bg-card text-muted-foreground hover:bg-accent"
@@ -465,11 +482,7 @@ export default function TestPracticePage() {
           })}
         </div>
 
-        <Button
-          onClick={loadQuestions}
-          disabled={selectedTopics.length === 0}
-          className="w-full gap-2"
-        >
+        <Button onClick={loadQuestions} disabled={selectedTopics.length === 0} className="w-full gap-2">
           Generate MCQs ({selectedTopics.length} topic{selectedTopics.length > 1 ? "s" : ""}){" "}
           <ArrowRight className="h-4 w-4" />
         </Button>
@@ -477,17 +490,18 @@ export default function TestPracticePage() {
     )
   }
 
-  // ─── Quiz not started yet ───
+  // Quiz not started yet
   if (phase !== "quiz") return null
 
   const savedForTest = saved.filter((b) => b.test === testName)
 
-  // ─── Done Screen ───
+  // Done Screen
   if (done && !reviewMode) {
     const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-fade-up">
-        <Trophy className="h-14 w-14 text-yellow-400" />
+        {pct >= 40 && <Confetti />}
+        <Trophy className="h-14 w-14 animate-bounce-in text-yellow-400" />
         <h1 className="mt-6 text-3xl font-semibold text-foreground">Test Complete!</h1>
         <p className="mt-2 text-muted-foreground">
           You scored {correctCountRef.current}/{questions.length} ({pct}%)
@@ -547,7 +561,7 @@ export default function TestPracticePage() {
     )
   }
 
-  // ─── Review Mode ───
+  // Review Mode
   if (reviewMode) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -628,7 +642,7 @@ export default function TestPracticePage() {
   const isBookmarked = saved.some((b) => b.test === testName && b.question === q.question)
   const isCorrect = answered && q !== undefined && picked === q.answer
 
-  // ─── Quiz UI ───
+  // Quiz UI
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
       <div className="flex items-center gap-4">
@@ -652,7 +666,7 @@ export default function TestPracticePage() {
         <h1 className="text-xl font-semibold text-foreground">{q.question}</h1>
         <button
           onClick={toggleBookmark}
-          className={`shrink-0 rounded-lg p-2 transition ${
+          className={`shrink-0 rounded-lg p-2 transition active:scale-90 ${
             isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           }`}
           title={isBookmarked ? "Remove from saved" : "Save this question"}
@@ -666,17 +680,17 @@ export default function TestPracticePage() {
           const isPick = picked === opt
           const isAns = opt === q.answer
           let cls = "border-border bg-card text-foreground hover:border-border/80 hover:bg-accent"
-          if (answered && isAns) cls = "border-emerald-400/50 bg-emerald-400/10 text-emerald-300"
-          else if (answered && isPick && !isAns) cls = "border-red-400/50 bg-red-400/10 text-red-300"
+          if (answered && isAns) cls = "border-emerald-500 bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
+          else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500 text-white shadow-[0_4px_14px_rgba(239,68,68,0.35)]"
           else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
             <button
               key={j}
               onClick={() => pick(opt)}
               disabled={answered}
-              className={`w-full rounded-xl border px-5 py-3 text-left text-sm transition ${cls} disabled:cursor-not-allowed`}
+              className={`w-full rounded-xl border px-5 py-3 text-left text-sm transition active:scale-[0.98] ${cls} disabled:cursor-not-allowed`}
             >
-              <span className="mr-2 font-medium text-muted-foreground">{String.fromCharCode(65 + j)}.</span>
+              <span className="mr-2 font-medium opacity-70">{String.fromCharCode(65 + j)}.</span>
               {opt}
             </button>
           )
@@ -689,36 +703,38 @@ export default function TestPracticePage() {
 
       {answered && (
         <div
-          className={`rounded-xl border p-4 ${
-            isCorrect ? "border-emerald-400/30 bg-emerald-400/10" : "border-red-400/30 bg-red-400/10"
+          className={`rounded-xl border p-4 text-white ${
+            isCorrect
+              ? "animate-bounce-in border-emerald-500 bg-emerald-500"
+              : "animate-shake border-red-500 bg-red-500"
           }`}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               {isCorrect ? (
-                <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-white" />
               ) : (
-                <XCircle className="h-6 w-6 shrink-0 text-red-400" />
+                <XCircle className="h-6 w-6 shrink-0 text-white" />
               )}
-              <span className={`font-medium ${isCorrect ? "text-emerald-300" : "text-red-300"}`}>
+              <span className="font-medium text-white">
                 {isCorrect ? "Correct!" : picked === "__timeout__" ? "Time's up!" : "Wrong!"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpl(!showExpl)}
-                className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+                className="flex items-center gap-1 text-xs text-white/80 transition hover:text-white"
               >
                 Explanation
                 <ChevronDown className={`h-4 w-4 transition-transform ${showExpl ? "rotate-180" : ""}`} />
               </button>
-              <Button onClick={next} className="gap-2">
+              <Button onClick={next} className="gap-2 bg-white text-black hover:bg-white/90">
                 {index + 1 >= questions.length ? "Finish" : "Next"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
           {showExpl && (
-            <div className="mt-3 border-t border-border pt-3 text-sm text-muted-foreground">{q.explanation}</div>
+            <div className="mt-3 border-t border-white/20 pt-3 text-sm text-white/90">{q.explanation}</div>
           )}
         </div>
       )}

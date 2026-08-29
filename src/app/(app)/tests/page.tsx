@@ -18,8 +18,10 @@ import {
   ArrowUpRight,
   SearchX,
   Flame,
+  Sparkles,
 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { getSyllabus } from "@/lib/syllabus"
 
 const tests = [
   { name: "Police Constable (KPK / Islamabad)", icon: Shield, color: "bg-blue-400/10 text-blue-400", category: "Defense & Police" },
@@ -63,12 +65,51 @@ export default function TestsPage() {
     return matchQ && matchC
   })
 
+  const featured = tests[0]
+  const showFeatured = category === "All" && query === ""
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Practice Tests</h1>
-        <p className="mt-2 text-muted-foreground">Select your target test to generate MCQs.</p>
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Practice Tests</h1>
+          <p className="mt-2 text-muted-foreground">Select your target test to generate MCQs.</p>
+        </div>
+        <span className="shrink-0 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+          {filtered.length} test{filtered.length === 1 ? "" : "s"}
+        </span>
       </div>
+
+      {showFeatured && (
+        <button
+          onClick={() => router.push(`/tests/${encodeURIComponent(featured.name)}`)}
+          className="group relative w-full overflow-hidden rounded-2xl border border-emerald-400/20 bg-gradient-to-r from-emerald-400/10 via-cyan-400/5 to-transparent p-6 text-left transition hover:-translate-y-0.5 hover:border-emerald-400/40 active:scale-[0.99]"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="rounded-xl bg-emerald-400/10 p-3 text-emerald-400 transition group-hover:scale-110">
+                <Shield className="h-6 w-6" />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-base font-semibold text-foreground">{featured.name}</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                    <Sparkles className="h-3 w-3" /> Full Syllabus Ready
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {["5 Subjects", "Part A (MCQs)", "Part B (Subjective)", "Full Mock Test"].map((chip) => (
+                    <span key={chip} className="rounded-full border border-border bg-card/60 px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <ArrowUpRight className="h-5 w-5 text-emerald-400 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+        </button>
+      )}
 
       <div className="relative w-full sm:max-w-xs">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -85,7 +126,7 @@ export default function TestsPage() {
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+            className={`rounded-full px-3 py-1 text-xs font-medium transition active:scale-95 ${
               category === c
                 ? "bg-primary text-primary-foreground"
                 : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -104,21 +145,28 @@ export default function TestsPage() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((t) => {
+          {filtered.map((t, i) => {
             const count = attempts[t.name] ?? 0
+            const hasSyllabus = !!getSyllabus(t.name)
             return (
               <button
                 key={t.name}
                 onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-                className="group flex items-start justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent"
+                style={{ animationDelay: `${i * 0.05}s` }}
+                className="group flex items-start justify-between rounded-xl border border-border bg-card p-5 text-left transition [animation-fill-mode:both] hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent animate-fade-up"
               >
                 <div>
-                  <span className={`inline-block rounded-lg p-2 ${t.color}`}>
+                  <span className={`inline-block rounded-lg p-2 transition group-hover:scale-110 ${t.color}`}>
                     <t.icon className="h-4 w-4" />
                   </span>
                   <div className="mt-3 text-sm font-medium text-card-foreground">{t.name}</div>
                   <div className="mt-1 text-xs text-muted-foreground">{t.category}</div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {hasSyllabus && (
+                      <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                        Syllabus Ready
+                      </span>
+                    )}
                     {count >= 3 && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-orange-400/10 px-2 py-0.5 text-[10px] font-medium text-orange-400">
                         <Flame className="h-3 w-3" /> Popular
@@ -131,7 +179,7 @@ export default function TestsPage() {
                     )}
                   </div>
                 </div>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 transition group-hover:text-foreground" />
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
               </button>
             )
           })}
