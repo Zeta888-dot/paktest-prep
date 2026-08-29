@@ -20,12 +20,12 @@ import {
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Practice Tests", href: "/tests", icon: FileText },
-  { label: "Saved Questions", href: "/saved", icon: Bookmark },
-  { label: "Upload Material", href: "/upload", icon: Upload },
-  { label: "Forum", href: "/forum", icon: MessagesSquare },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, hover: "group-hover:scale-110 group-hover:-translate-y-0.5" },
+  { label: "Practice Tests", href: "/tests", icon: FileText, hover: "group-hover:rotate-6 group-hover:scale-110" },
+  { label: "Saved Questions", href: "/saved", icon: Bookmark, hover: "group-hover:scale-125 group-hover:text-yellow-400" },
+  { label: "Upload Material", href: "/upload", icon: Upload, hover: "group-hover:-translate-y-1 group-hover:scale-110" },
+  { label: "Forum", href: "/forum", icon: MessagesSquare, hover: "group-hover:scale-110 group-hover:-translate-x-0.5" },
+  { label: "Settings", href: "/settings", icon: Settings, hover: "group-hover:rotate-90" },
 ]
 
 const themeOptions = [
@@ -52,11 +52,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-sidebar p-4">
-      <Link href="/" className="mb-8 flex items-center gap-2 px-2 text-lg font-semibold text-foreground">
-        <GraduationCap className="h-5 w-5" />
-        PakTest Prep
+    <aside className="flex h-full w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-sidebar p-3">
+      <Link
+        href="/"
+        className="group mb-6 flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 transition-all hover:bg-accent"
+      >
+        <div className="rounded-lg bg-primary/10 p-2 text-primary transition-transform group-hover:scale-110">
+          <GraduationCap className="h-5 w-5" />
+        </div>
+        <span className="text-lg font-semibold text-foreground">PakTest Prep</span>
       </Link>
+
       <nav className="flex flex-col gap-1">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/")
@@ -66,47 +72,72 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <div
+                className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-200",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "bg-transparent text-muted-foreground group-hover:bg-primary/5 group-hover:text-foreground"
+                )}
+              >
+                <item.icon className={cn("h-4 w-4 transition-all duration-300", item.hover)} />
+              </div>
+              <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                {item.label}
+              </span>
+              {active && (
+                <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+              )}
             </Link>
           )
         })}
       </nav>
 
-      <div className="mt-auto space-y-3 px-2">
+      <div className="mt-auto space-y-2 px-1 pt-6">
         {status === "authenticated" && session.user ? (
-          <div className="flex items-center gap-2 rounded-lg border border-border p-2">
-            {session.user.image ? (
-              <img src={session.user.image} alt="" className="h-8 w-8 rounded-full" />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                {(session.user.name ?? "U").charAt(0).toUpperCase()}
+          <div className="group relative rounded-lg border border-border p-2 transition-all hover:bg-accent">
+            <div className="flex items-center gap-2.5">
+              {session.user.image ? (
+                <img
+                  src={session.user.image}
+                  alt=""
+                  className="h-8 w-8 rounded-full ring-2 ring-transparent transition-all group-hover:ring-primary/20"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary ring-2 ring-transparent transition-all group-hover:ring-primary/20">
+                  {(session.user.name ?? "U").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-foreground transition-transform group-hover:translate-x-0.5">
+                  {session.user.name}
+                </div>
+                <div className="truncate text-[11px] text-muted-foreground">{session.user.email}</div>
               </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-medium text-foreground">{session.user.name}</div>
-              <div className="truncate text-[10px] text-muted-foreground">{session.user.email}</div>
+              <button
+                onClick={() => signOut()}
+                title="Sign out"
+                className="rounded-md p-1.5 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4 transition-transform duration-300 group-hover:rotate-180" />
+              </button>
             </div>
-            <button
-              onClick={() => signOut()}
-              title="Sign out"
-              className="rounded-md p-1.5 text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
           </div>
         ) : (
           <button
             onClick={() => signIn("google")}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-border py-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            className="group flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-foreground"
           >
-            Sign in with Google
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary transition-transform group-hover:scale-110">
+              <LogOut className="h-4 w-4 rotate-180 transition-transform duration-300 group-hover:rotate-0" />
+            </div>
+            <span className="transition-transform group-hover:translate-x-0.5">Sign in with Google</span>
           </button>
         )}
 
@@ -117,17 +148,18 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               onClick={() => applyTheme(t.value)}
               title={t.label}
               className={cn(
-                "flex flex-1 items-center justify-center rounded-md py-1.5 transition",
+                "flex flex-1 items-center justify-center rounded-md py-1.5 transition-all duration-200",
                 theme === t.value
                   ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
             >
               <t.icon className="h-4 w-4" />
             </button>
           ))}
         </div>
-        <div className="text-xs text-muted-foreground">© 2026 PakTest Prep</div>
+
+        <div className="px-2 pb-1 text-[11px] text-muted-foreground">© 2026 PakTest Prep</div>
       </div>
     </aside>
   )
