@@ -44,11 +44,7 @@ const tests = [
 
 const categories = ["All", "Defense & Police", "Clerical & Admin", "Teaching", "Medical & Engineering", "Civil Services"]
 
-function difficultyColor(d: string) {
-  if (d === "Easy") return "bg-emerald-500 text-white"
-  if (d === "Medium") return "bg-amber-500 text-white"
-  return "bg-red-500 text-white"
-}
+
 
 function CircularProgress({ pct, size = 44 }: { pct: number; size?: number }) {
   const r = (size - 4) / 2
@@ -102,7 +98,7 @@ export default function TestsPage() {
         setProgress(pctMap)
         setLastAttempted(last)
       })
-      .catch(() => {})
+          .catch(() => {})
   }, [])
 
   const filtered = tests.filter((t) => {
@@ -259,13 +255,7 @@ export default function TestsPage() {
 
                 <div className="mt-4">
                   <div className="text-sm font-medium text-card-foreground">{t.name}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{t.category}</span>
-                    <span className="text-[10px] text-muted-foreground">·</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${difficultyColor(t.difficulty)}`}>
-                      {t.difficulty}
-                    </span>
-                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{t.category}</div>
                 </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -274,11 +264,7 @@ export default function TestsPage() {
                       Syllabus Ready
                     </span>
                   )}
-                  {count >= 3 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-medium text-white">
-                      <Flame className="h-3 w-3" /> Popular
-                    </span>
-                  )}
+                   
                   {isStarted && (
                     <span className="text-[10px] text-muted-foreground">
                       {count} attempt{count > 1 ? "s" : ""}

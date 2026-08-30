@@ -28,6 +28,7 @@ export const questions = pgTable("questions", {
 
 export const history = pgTable("history", {
   id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().default("anonymous"),
   testName: text("test_name").notNull(),
   source: text("source").notNull(),
   correct: integer("correct").notNull(),
@@ -35,7 +36,6 @@ export const history = pgTable("history", {
   duration: integer("duration"),
   createdAt: timestamp("created_at").defaultNow(),
 })
-
 export const posts = pgTable("posts", {
   id: uuid("id").primaryKey().defaultRandom(),
   author: text("author").notNull(),
@@ -43,4 +43,11 @@ export const posts = pgTable("posts", {
   body: text("body").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   likes: integer("likes").notNull().default(0),
+})
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow(),
 })

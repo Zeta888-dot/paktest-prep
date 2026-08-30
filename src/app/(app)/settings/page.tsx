@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { loadSettings, saveSettings, type Settings } from "@/lib/settings"
 import {
@@ -15,9 +15,64 @@ import {
   FileX,
   Check,
   Loader2,
+  ChevronDown,
 } from "lucide-react"
 
 type Theme = "dark" | "light" | "system"
+
+function CustomSelect<T extends string | number>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T
+  onChange: (v: T) => void
+  options: { value: T; label: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const selected = options.find((o) => o.value === value)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground transition hover:border-foreground/20 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
+      >
+        <span>{selected?.label}</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 origin-top rounded-lg border border-border bg-card shadow-xl animate-bounce-in">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value)
+                setOpen(false)
+              }}
+              className={`w-full px-3 py-2.5 text-left text-sm transition hover:bg-accent first:rounded-t-lg last:rounded-b-lg ${
+                opt.value === value ? "bg-indigo-500 text-white" : "text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function SettingsPage() {
   const [form, setForm] = useState<Settings>({
@@ -127,28 +182,32 @@ export default function SettingsPage() {
         </div>
         <label className="block text-sm text-muted-foreground">
           Questions per test
-          <select
-            value={form.questionsPerTest}
-            onChange={(e) => setForm({ ...form, questionsPerTest: Number(e.target.value) })}
-            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={20}>20</option>
-            <option value={25}>25</option>
-          </select>
+          <div className="mt-1.5">
+            <CustomSelect
+              value={form.questionsPerTest}
+              onChange={(v) => setForm({ ...form, questionsPerTest: v })}
+              options={[
+                { value: 5, label: "5" },
+                { value: 10, label: "10" },
+                { value: 15, label: "15" },
+                { value: 20, label: "20" },
+                { value: 25, label: "25" },
+              ]}
+            />
+          </div>
         </label>
         <label className="block text-sm text-muted-foreground">
           Default question source
-          <select
-            value={form.defaultSource}
-            onChange={(e) => setForm({ ...form, defaultSource: e.target.value as "syllabus" | "material" })}
-            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="syllabus">From Syllabus</option>
-            <option value="material">From My Material</option>
-          </select>
+          <div className="mt-1.5">
+            <CustomSelect
+              value={form.defaultSource}
+              onChange={(v) => setForm({ ...form, defaultSource: v as "syllabus" | "material" })}
+              options={[
+                { value: "syllabus", label: "From Syllabus" },
+                { value: "material", label: "From My Material" },
+              ]}
+            />
+          </div>
         </label>
       </section>
 
@@ -228,7 +287,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-card-foreground">Reset All Data</p>
-                <p className="text-xs text-muted-foreground">Clear settings, history, likes, replies — everything.</p>
+                <p className="text-xs text-muted-foreground">Clear settings, history, likes, replies, everything.</p>
               </div>
               <Button
                 variant="outline"

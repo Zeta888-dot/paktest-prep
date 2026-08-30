@@ -122,7 +122,7 @@ function QuestionPalette({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-border bg-card p-3 shadow-xl">
+                    <div className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-xl border border-border bg-card p-3 shadow-xl animate-bounce-in">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-medium text-card-foreground">Question Palette</span>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
