@@ -17,6 +17,17 @@ import {
   FolderOpen,
   PenLine,
   Timer,
+  Sun,
+  Moon,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Star,
+  ChevronRight,
+  Trophy,
+  Brain,
+  Dumbbell,
+  Calendar,
 } from "lucide-react"
 import { loadSettings } from "@/lib/settings"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -84,18 +95,22 @@ function calcStreak(rows: HistoryRow[]) {
 }
 
 function summarize(rows: HistoryRow[]) {
-  const byTest: Record<string, { correct: number; total: number; attempts: number }> = {}
+  const byTest: Record<string, { correct: number; total: number; attempts: number; history: number[] }> = {}
   for (const r of rows) {
-    if (!byTest[r.testName]) byTest[r.testName] = { correct: 0, total: 0, attempts: 0 }
+    if (!byTest[r.testName]) byTest[r.testName] = { correct: 0, total: 0, attempts: 0, history: [] }
     byTest[r.testName].correct += r.correct
     byTest[r.testName].total += r.total
     byTest[r.testName].attempts += 1
+    const pct = r.total ? Math.round((r.correct / r.total) * 100) : 0
+    byTest[r.testName].history.push(pct)
   }
   return Object.entries(byTest)
     .map(([name, v]) => ({
       name,
       attempts: v.attempts,
       pct: v.total ? Math.round((v.correct / v.total) * 100) : 0,
+      history: v.history,
+      trend: v.history.length > 1 ? v.history[v.history.length - 1] - v.history[v.history.length - 2] : 0,
     }))
     .sort((a, b) => b.attempts - a.attempts)
 }
@@ -165,7 +180,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           strokeWidth="10"
           strokeLinecap="round"
           stroke="currentColor"
-          className="text-emerald-400 transition-all duration-1000 ease-out"
+          className="text-indigo-400 transition-all duration-1000 ease-out"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - p)}
         />
@@ -185,6 +200,202 @@ function sourceIcon(source: string) {
   return BookOpen
 }
 
+function StreakHeatmap({ rows }: { rows: HistoryRow[] }) {
+  const days: Record<string, number> = {}
+  for (const r of rows) {
+    const key = new Date(r.createdAt).toDateString()
+    days[key] = (days[key] ?? 0) + r.total
+  }
+
+  const weeks: { date: Date; qs: number }[][] = []
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - 90)
+
+  let currentWeek: { date: Date; qs: number }[] = []
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const qs = days[d.toDateString()] ?? 0
+    currentWeek.push({ date: new Date(d), qs })
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek)
+      currentWeek = []
+    }
+  }
+  if (currentWeek.length > 0) weeks.push(currentWeek)
+
+  const maxQs = Math.max(...Object.values(days), 1)
+
+  function intensity(qs: number) {
+    if (qs === 0) return "bg-muted"
+    if (qs <= maxQs * 0.25) return "bg-indigo-400/30"
+    if (qs <= maxQs * 0.5) return "bg-indigo-400/50"
+    if (qs <= maxQs * 0.75) return "bg-indigo-400/70"
+    return "bg-indigo-400"
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="rounded-lg bg-indigo-400/10 p-1.5 text-indigo-400">
+            <Calendar className="h-4 w-4" />
+          </span>
+          Activity Heatmap
+        </div>
+        <span className="text-xs text-muted-foreground">Last 90 days</span>
+      </div>
+      <div className="mt-4 flex gap-1 overflow-x-auto pb-2">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-1">
+            {week.map((day, di) => (
+              <div
+                key={di}
+                title={`${day.date.toDateString()}: ${day.qs} questions`}
+                className={`h-3 w-3 rounded-sm ${intensity(day.qs)}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+        <span>Less</span>
+        <div className="h-2.5 w-2.5 rounded-sm bg-muted" />
+        <div className="h-2.5 w-2.5 rounded-sm bg-indigo-400/30" />
+        <div className="h-2.5 w-2.5 rounded-sm bg-indigo-400/50" />
+        <div className="h-2.5 w-2.5 rounded-sm bg-indigo-400/70" />
+        <div className="h-2.5 w-2.5 rounded-sm bg-indigo-400" />
+        <span>More</span>
+      </div>
+    </div>
+  )
+}
+
+function MiniSparkline({ data, width = 60, height = 24 }: { data: number[]; width?: number; height?: number }) {
+  if (data.length < 2) return <Minus className="h-3 w-3 text-muted-foreground" />
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - ((v - min) / range) * height
+    return `${x},${y}`
+  }).join(" ")
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        points={points}
+        className="text-indigo-400"
+      />
+      <circle cx={width} cy={height - ((data[data.length - 1] - min) / range) * height} r="2" className="fill-indigo-400" />
+    </svg>
+  )
+}
+
+function QuickActions({ weakTest, onPractice }: { weakTest: string | null; onPractice: () => void }) {
+  const router = useRouter()
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <button
+        onClick={() => router.push("/tests")}
+        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20"
+      >
+        <span className="rounded-lg bg-indigo-400/10 p-2 text-indigo-400 transition group-hover:scale-110">
+          <Brain className="h-5 w-5" />
+        </span>
+        <div>
+          <div className="text-sm font-medium">Practice Now</div>
+          <div className="text-xs text-muted-foreground">Pick any test</div>
+        </div>
+        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+      </button>
+
+      {weakTest ? (
+        <button
+          onClick={onPractice}
+          className="group flex items-center gap-3 rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-400/10 to-transparent p-4 text-left transition hover:-translate-y-0.5 hover:border-amber-400/40"
+        >
+          <span className="rounded-lg bg-amber-400/10 p-2 text-amber-400 transition group-hover:scale-110">
+            <Dumbbell className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-sm font-medium">Weak Area</div>
+            <div className="text-xs text-muted-foreground">{weakTest}</div>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4 text-amber-400 transition group-hover:translate-x-0.5" />
+        </button>
+      ) : (
+        <button
+          onClick={() => router.push("/tests")}
+          className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30"
+        >
+          <span className="rounded-lg bg-emerald-400/10 p-2 text-emerald-400 transition group-hover:scale-110">
+            <Star className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-sm font-medium">Daily Challenge</div>
+            <div className="text-xs text-muted-foreground">20 questions</div>
+          </div>
+          <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+        </button>
+      )}
+
+      <button
+        onClick={() => router.push("/tests")}
+        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20"
+      >
+        <span className="rounded-lg bg-orange-400/10 p-2 text-orange-400 transition group-hover:scale-110">
+          <Trophy className="h-5 w-5" />
+        </span>
+        <div>
+          <div className="text-sm font-medium">Mock Test</div>
+          <div className="text-xs text-muted-foreground">Full simulation</div>
+        </div>
+        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+      </button>
+    </div>
+  )
+}
+
+function SkillTree({ breakdown }: { breakdown: ReturnType<typeof summarize> }) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="rounded-lg bg-violet-400/10 p-1.5 text-violet-400">
+          <Target className="h-4 w-4" />
+        </span>
+        Subject Mastery
+      </div>
+      <div className="mt-4 space-y-3">
+        {breakdown.slice(0, 5).map((t) => (
+          <div key={t.name} className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-bold text-muted-foreground">
+              {t.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="truncate font-medium text-card-foreground">{t.name}</span>
+                <span className="shrink-0 text-muted-foreground">{t.pct}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full ${barColor(t.pct)}`}
+                  style={{ width: `${Math.max(t.pct, 2)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        {breakdown.length === 0 && (
+          <p className="text-xs text-muted-foreground">No data yet. Start practicing to see your mastery levels.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const DAILY_GOAL = 20
 const XP_PER_LEVEL = 250
 
@@ -193,8 +404,10 @@ export default function DashboardPage() {
   const [rows, setRows] = useState<HistoryRow[]>([])
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(true)
+  const [hour, setHour] = useState(12)
 
   useEffect(() => {
+    setHour(new Date().getHours())
     setName(loadSettings().displayName)
     fetch("/api/history")
       .then((r) => r.json())
@@ -233,15 +446,27 @@ export default function DashboardPage() {
   const maxQs = Math.max(...week.map((w) => w.qs), 1)
   const todayQs = week[6].qs
 
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  const GreetingIcon = hour < 6 || hour > 18 ? Moon : Sun
+
   return (
     <div className="space-y-8 animate-fade-up">
-      <div>
+      {/* Greeting */}
+      <div className="flex items-center gap-3">
+        <GreetingIcon className="h-5 w-5 text-amber-400" />
         <h1 className="text-2xl font-semibold text-foreground">
-          Welcome back{name ? `, ${name}` : ""}
+          {greeting}{name ? `, ${name}` : ""}
         </h1>
-        <p className="mt-2 text-muted-foreground">Select a test to start practicing.</p>
       </div>
 
+      {/* Quick Actions */}
+      <QuickActions
+        weakTest={weak.length > 0 ? weak[0].name : null}
+        onPractice={() => router.push(`/tests/${encodeURIComponent(weak[0].name)}`)}
+      />
+
+      {/* Top Row: XP + Daily Goal + Weekly */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
@@ -267,13 +492,13 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="rounded-lg bg-emerald-400/10 p-1.5 text-emerald-400">
+              <span className="rounded-lg bg-indigo-400/10 p-1.5 text-indigo-400">
                 <Target className="h-4 w-4" />
               </span>
               Daily Goal
             </div>
             <p className="mt-3 text-sm font-medium text-card-foreground">
-              {todayQs >= DAILY_GOAL ? "Goal complete! Welldone!" : `${DAILY_GOAL - todayQs} questions to go`}
+              {todayQs >= DAILY_GOAL ? "Goal complete! Well done!" : `${DAILY_GOAL - todayQs} questions to go`}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Answer {DAILY_GOAL} questions a day</p>
           </div>
@@ -296,11 +521,11 @@ export default function DashboardPage() {
               >
                 <div
                   className={`w-full rounded-t-md transition-all duration-700 ${
-                    w.qs === 0 ? "bg-muted" : w.isToday ? "bg-cyan-400" : "bg-cyan-400/50"
+                    w.qs === 0 ? "bg-muted" : w.isToday ? "bg-indigo-400" : "bg-indigo-400/50"
                   }`}
                   style={{ height: `${Math.max((w.qs / maxQs) * 100, 4)}%` }}
                 />
-                <span className={`text-[10px] ${w.isToday ? "font-bold text-cyan-400" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] ${w.isToday ? "font-bold text-indigo-400" : "text-muted-foreground"}`}>
                   {w.label}
                 </span>
               </div>
@@ -309,6 +534,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Stats Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard icon={BarChart3} label="Attempts" value={attempts} color="bg-blue-400/10 text-blue-400" />
         <StatCard icon={HelpCircle} label="Questions" value={answered} color="bg-purple-400/10 text-purple-400" />
@@ -317,6 +543,13 @@ export default function DashboardPage() {
         <StatCard icon={Flame} label="Day Streak" value={streak} color="bg-orange-400/10 text-orange-400" />
       </div>
 
+      {/* Heatmap + Skill Tree */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StreakHeatmap rows={rows} />
+        <SkillTree breakdown={breakdown} />
+      </div>
+
+      {/* Weak Area Alert */}
       {weak.length > 0 && (
         <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-400/10 to-transparent p-5">
           <div className="flex items-center gap-3">
@@ -339,6 +572,7 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Test Breakdown with Sparklines */}
       {breakdown.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -349,10 +583,17 @@ export default function DashboardPage() {
             {breakdown.map((t) => (
               <div key={t.name}>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-medium text-card-foreground">{t.name}</span>
-                  <span className="text-muted-foreground">
-                    {t.pct}% · {t.attempts} attempt{t.attempts > 1 ? "s" : ""}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-card-foreground">{t.name}</span>
+                    {t.trend > 0 && <TrendingUp className="h-3 w-3 text-emerald-400" />}
+                    {t.trend < 0 && <TrendingDown className="h-3 w-3 text-red-400" />}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MiniSparkline data={t.history} />
+                    <span className="text-muted-foreground">
+                      {t.pct}% · {t.attempts} attempt{t.attempts > 1 ? "s" : ""}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
@@ -366,6 +607,7 @@ export default function DashboardPage() {
         </section>
       )}
 
+      {/* Needs Improvement */}
       {weak.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -402,22 +644,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <button
-        onClick={() => router.push("/tests")}
-        className="group flex w-full items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/20 sm:w-auto sm:inline-flex sm:gap-4"
-      >
-        <div className="flex items-center gap-3">
-          <span className="rounded-lg bg-primary/10 p-2 text-primary">
-            <BookOpen className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="font-medium text-card-foreground">Start Practicing</div>
-            <div className="text-sm text-muted-foreground">Pick a test and generate MCQs</div>
-          </div>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-foreground" />
-      </button>
-
+      {/* Recent Attempts */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />

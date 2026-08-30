@@ -28,6 +28,10 @@ import {
   FolderOpen,
   ChevronLeft,
   PenLine,
+  Flag,
+  Keyboard,
+  Zap,
+  ChevronRight,
 } from "lucide-react"
 
 type Question = {
@@ -37,8 +41,10 @@ type Question = {
   explanation: string
 }
 
-function TimerBar({ duration, onTimeout, keyReset }: { duration: number; onTimeout: () => void; keyReset: number }) {
+function CircularTimer({ duration, onTimeout, keyReset }: { duration: number; onTimeout: () => void; keyReset: number }) {
   const [left, setLeft] = useState(duration)
+  const radius = 18
+  const circumference = 2 * Math.PI * radius
 
   useEffect(() => {
     setLeft(duration)
@@ -55,23 +61,111 @@ function TimerBar({ duration, onTimeout, keyReset }: { duration: number; onTimeo
     return () => clearInterval(interval)
   }, [keyReset, duration, onTimeout])
 
-  const pct = (left / duration) * 100
-  const barColor = pct > 50 ? "bg-emerald-400" : pct > 20 ? "bg-amber-400" : "bg-red-400"
+  const pct = left / duration
+  const offset = circumference * (1 - pct)
+  const color = pct > 0.5 ? "text-indigo-400" : pct > 0.2 ? "text-amber-400" : "text-red-400"
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Timer className="h-3 w-3" /> {left}s
+    <div className="flex items-center gap-3">
+      <div className="relative h-10 w-10">
+        <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90">
+          <circle cx="20" cy="20" r={radius} fill="none" strokeWidth="3" stroke="currentColor" className="text-muted" />
+          <circle
+            cx="20"
+            cy="20"
+            r={radius}
+            fill="none"
+            strokeWidth="3"
+            strokeLinecap="round"
+            stroke="currentColor"
+            className={`${color} transition-all duration-1000`}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-foreground">
+          {left}
         </span>
-        <span>Auto-skip in {left}s</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full transition-all duration-1000 ease-linear ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <span className="text-xs text-muted-foreground">seconds</span>
+    </div>
+  )
+}
+
+function QuestionPalette({
+  total,
+  current,
+  answers,
+  flagged,
+  onJump,
+}: {
+  total: number
+  current: number
+  answers: Record<number, string>
+  flagged: Set<number>
+  onJump: (i: number) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-accent"
+      >
+        <span className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-[10px] font-bold text-primary">
+          {current + 1}
+        </span>
+        <span>/ {total}</span>
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-border bg-card p-3 shadow-xl">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-card-foreground">Question Palette</span>
+              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({ length: total }, (_, i) => {
+                const answered = answers[i] !== undefined
+                const isFlagged = flagged.has(i)
+                const isCurrent = i === current
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onJump(i)
+                      setOpen(false)
+                    }}
+                    className={`relative flex h-8 items-center justify-center rounded-md text-xs font-medium transition ${
+                      isCurrent
+                        ? "bg-primary text-primary-foreground"
+                        : answered
+                        ? "bg-emerald-500/15 text-emerald-400"
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {i + 1}
+                    {isFlagged && (
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-400" />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-3 border-t border-border pt-2 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Answered</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Current</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> Flagged</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -103,6 +197,7 @@ export default function TestPracticePage() {
   const [saved, setSaved] = useState<SavedQuestion[]>([])
   const [reviewMode, setReviewMode] = useState(false)
   const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [flagged, setFlagged] = useState<Set<number>>(new Set())
   const [sharing, setSharing] = useState(false)
   const [shared, setShared] = useState(false)
   const [showShare, setShowShare] = useState(false)
@@ -133,6 +228,7 @@ export default function TestPracticePage() {
     setShowExpl(false)
     setReviewMode(false)
     setAnswers({})
+    setFlagged(new Set())
     setShared(false)
     setShowShare(false)
     submitted.current = false
@@ -168,6 +264,8 @@ export default function TestPracticePage() {
         if (opt) pick(opt)
       } else if (e.key === "Enter" && answered) {
         next()
+      } else if (e.key === "f" || e.key === "F") {
+        toggleFlag()
       }
     }
     window.addEventListener("keydown", onKey)
@@ -220,6 +318,22 @@ export default function TestPracticePage() {
         explanation: q.explanation,
       })
     )
+  }
+
+  function toggleFlag() {
+    setFlagged((prev) => {
+      const next = new Set(prev)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
+
+  function jumpTo(i: number) {
+    if (i < 0 || i >= questions.length) return
+    setIndex(i)
+    setPicked(answers[i] ?? null)
+    setShowExpl(false)
   }
 
   function restart() {
@@ -280,12 +394,8 @@ export default function TestPracticePage() {
     }
   }
 
-  // Loading
-  if (loading) {
-    return <GenerationProgress />
-  }
+  if (loading) return <GenerationProgress />
 
-  // Error
   if (error) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
@@ -304,7 +414,6 @@ export default function TestPracticePage() {
     )
   }
 
-  // Phase: Source Selection
   if (phase === "source") {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -321,7 +430,7 @@ export default function TestPracticePage() {
             }}
             className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
           >
-            <span className="inline-block rounded-lg bg-blue-400/10 p-2 text-blue-400">
+            <span className="inline-block rounded-lg bg-indigo-400/10 p-2 text-indigo-400">
               <BookOpen className="h-5 w-5" />
             </span>
             <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
@@ -334,7 +443,7 @@ export default function TestPracticePage() {
             }}
             className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
           >
-            <span className="inline-block rounded-lg bg-purple-400/10 p-2 text-purple-400">
+            <span className="inline-block rounded-lg bg-violet-400/10 p-2 text-violet-400">
               <FolderOpen className="h-5 w-5" />
             </span>
             <div className="mt-3 font-medium text-card-foreground">From My Material</div>
@@ -349,9 +458,7 @@ export default function TestPracticePage() {
                 <PenLine className="h-5 w-5" />
               </span>
               <div className="mt-3 font-medium text-card-foreground">Part B (Subjective)</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Translation and sentence formation with instant checking.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Translation and sentence formation with instant checking.</p>
             </button>
           )}
           {syllabus && (
@@ -363,9 +470,7 @@ export default function TestPracticePage() {
                 <Timer className="h-5 w-5" />
               </span>
               <div className="mt-3 font-medium text-card-foreground">Full Mock Test</div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                100 marks, timed exam simulation with Part A and Part B.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">100 marks, timed exam simulation with Part A and Part B.</p>
             </button>
           )}
         </div>
@@ -373,7 +478,6 @@ export default function TestPracticePage() {
     )
   }
 
-  // Phase: Subject Selection
   if (phase === "subject" && syllabus) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -411,7 +515,6 @@ export default function TestPracticePage() {
     )
   }
 
-  // Phase: Topic Selection
   if (phase === "topic" && selectedSubject) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -490,18 +593,19 @@ export default function TestPracticePage() {
     )
   }
 
-  // Quiz not started yet
   if (phase !== "quiz") return null
 
   const savedForTest = saved.filter((b) => b.test === testName)
 
-  // Done Screen
   if (done && !reviewMode) {
     const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
+    const isWin = pct >= 80
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-fade-up">
-        {pct >= 40 && <Confetti />}
-        <Trophy className="h-14 w-14 animate-bounce-in text-yellow-400" />
+        {isWin && <Confetti />}
+        <div className={`rounded-full p-4 ${isWin ? "bg-emerald-500/10" : "bg-amber-500/10"}`}>
+          <Trophy className={`h-10 w-10 ${isWin ? "text-emerald-400" : "text-amber-400"}`} />
+        </div>
         <h1 className="mt-6 text-3xl font-semibold text-foreground">Test Complete!</h1>
         <p className="mt-2 text-muted-foreground">
           You scored {correctCountRef.current}/{questions.length} ({pct}%)
@@ -561,7 +665,6 @@ export default function TestPracticePage() {
     )
   }
 
-  // Review Mode
   if (reviewMode) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -641,103 +744,172 @@ export default function TestPracticePage() {
 
   const isBookmarked = saved.some((b) => b.test === testName && b.question === q.question)
   const isCorrect = answered && q !== undefined && picked === q.answer
+  const isFlagged = flagged.has(index)
 
-  // Quiz UI
   return (
     <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+      {/* Top Bar */}
       <div className="flex items-center gap-4">
         <button onClick={() => router.push("/tests")} className="text-muted-foreground transition hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-500"
+            className="h-full rounded-full bg-indigo-400 transition-all duration-500"
             style={{ width: `${((index + (answered ? 1 : 0)) / questions.length) * 100}%` }}
           />
         </div>
-        <span className="text-sm text-muted-foreground">
-          {index + 1}/{questions.length}
+        <QuestionPalette
+          total={questions.length}
+          current={index}
+          answers={answers}
+          flagged={flagged}
+          onJump={jumpTo}
+        />
+      </div>
+
+      {/* Timer + Flag */}
+      <div className="flex items-center justify-between">
+        <CircularTimer duration={45} onTimeout={handleTimeout} keyReset={index} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleFlag}
+            className={`rounded-lg p-2 transition active:scale-90 ${
+              isFlagged ? "bg-amber-400/10 text-amber-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            title={isFlagged ? "Unflag question" : "Flag for review"}
+          >
+            <Flag className={`h-4 w-4 ${isFlagged ? "fill-current" : ""}`} />
+          </button>
+          <button
+            onClick={toggleBookmark}
+            className={`rounded-lg p-2 transition active:scale-90 ${
+              isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            title={isBookmarked ? "Remove from saved" : "Save this question"}
+          >
+            <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Question */}
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-bold text-indigo-400">
+          {index + 1}
         </span>
+        <h1 className="text-lg font-semibold leading-relaxed text-foreground sm:text-xl">{q.question}</h1>
       </div>
 
-      <TimerBar duration={45} onTimeout={handleTimeout} keyReset={index} />
-
-      <div className="flex items-start justify-between gap-3">
-        <h1 className="text-xl font-semibold text-foreground">{q.question}</h1>
-        <button
-          onClick={toggleBookmark}
-          className={`shrink-0 rounded-lg p-2 transition active:scale-90 ${
-            isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          }`}
-          title={isBookmarked ? "Remove from saved" : "Save this question"}
-        >
-          <Bookmark className={`h-5 w-5 ${isBookmarked ? "fill-current" : ""}`} />
-        </button>
-      </div>
-
-      <div className="space-y-3">
+      {/* Options */}
+      <div className="space-y-2.5">
         {q.options.map((opt, j) => {
           const isPick = picked === opt
           const isAns = opt === q.answer
-          let cls = "border-border bg-card text-foreground hover:border-border/80 hover:bg-accent"
-          if (answered && isAns) cls = "border-emerald-500 bg-emerald-500 text-white shadow-[0_4px_14px_rgba(16,185,129,0.35)]"
-          else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500 text-white shadow-[0_4px_14px_rgba(239,68,68,0.35)]"
+          let cls = "border-border bg-card text-foreground hover:border-indigo-400/40 hover:bg-indigo-400/5 hover:shadow-sm hover:shadow-indigo-500/5"
+          if (answered && isAns) cls = "border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+          else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500/10 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
           else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
             <button
               key={j}
               onClick={() => pick(opt)}
               disabled={answered}
-              className={`w-full rounded-xl border px-5 py-3 text-left text-sm transition active:scale-[0.98] ${cls} disabled:cursor-not-allowed`}
+              className={`group flex w-full items-center gap-3 rounded-xl border px-5 py-3.5 text-left text-sm transition active:scale-[0.98] ${cls} disabled:cursor-not-allowed`}
             >
-              <span className="mr-2 font-medium opacity-70">{String.fromCharCode(65 + j)}.</span>
-              {opt}
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition ${
+                answered && isAns
+                  ? "bg-emerald-500 text-white"
+                  : answered && isPick && !isAns
+                  ? "bg-red-500 text-white"
+                  : answered
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-muted text-muted-foreground group-hover:bg-indigo-500/10 group-hover:text-indigo-400"
+              }`}>
+                {String.fromCharCode(65 + j)}
+              </span>
+              <span className="flex-1">{opt}</span>
+              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />}
+              {answered && isPick && !isAns && <XCircle className="h-5 w-5 shrink-0 text-red-400" />}
             </button>
           )
         })}
       </div>
 
+      {/* Keyboard Hints */}
       {!answered && (
-        <p className="text-xs text-muted-foreground">Tip: Press 1-4 to answer, Enter for next</p>
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Keyboard className="h-3 w-3" />
+            Press <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">1-4</kbd> to answer
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">F</kbd> to flag
+          </span>
+          <span className="flex items-center gap-1">
+            <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[10px]">Enter</kbd> for next
+          </span>
+        </div>
       )}
 
+      {/* Feedback */}
       {answered && (
         <div
-          className={`rounded-xl border p-4 text-white ${
+          className={`rounded-xl border p-4 ${
             isCorrect
-              ? "animate-bounce-in border-emerald-500 bg-emerald-500"
-              : "animate-shake border-red-500 bg-red-500"
+              ? "animate-bounce-in border-emerald-500/30 bg-emerald-500/5"
+              : "animate-shake border-red-500/30 bg-red-500/5"
           }`}
         >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               {isCorrect ? (
-                <CheckCircle2 className="h-6 w-6 shrink-0 text-white" />
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-400" />
               ) : (
-                <XCircle className="h-6 w-6 shrink-0 text-white" />
+                <XCircle className="h-6 w-6 shrink-0 text-red-400" />
               )}
-              <span className="font-medium text-white">
+              <span className={`font-medium ${isCorrect ? "text-emerald-400" : "text-red-400"}`}>
                 {isCorrect ? "Correct!" : picked === "__timeout__" ? "Time's up!" : "Wrong!"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpl(!showExpl)}
-                className="flex items-center gap-1 text-xs text-white/80 transition hover:text-white"
+                className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
               >
                 Explanation
                 <ChevronDown className={`h-4 w-4 transition-transform ${showExpl ? "rotate-180" : ""}`} />
               </button>
-              <Button onClick={next} className="gap-2 bg-white text-black hover:bg-white/90">
+              <Button onClick={next} className="gap-2 bg-indigo-400 text-black hover:bg-indigo-300">
                 {index + 1 >= questions.length ? "Finish" : "Next"} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
           {showExpl && (
-            <div className="mt-3 border-t border-white/20 pt-3 text-sm text-white/90">{q.explanation}</div>
+            <div className="mt-3 border-t border-border pt-3 text-sm leading-relaxed text-muted-foreground">
+              {q.explanation}
+            </div>
           )}
         </div>
       )}
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <button
+          onClick={() => jumpTo(index - 1)}
+          disabled={index === 0}
+          className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" /> Previous
+        </button>
+        <button
+          onClick={() => jumpTo(index + 1)}
+          disabled={index === questions.length - 1 || !answered}
+          className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground disabled:opacity-30"
+        >
+          Next <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   )
 }

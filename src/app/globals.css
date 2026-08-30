@@ -3,7 +3,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Brand palette — replaces generic emerald-everywhere with a distinctive identity.
+   Emerald is kept, but scoped to "correct / success" states only. */
+:root {
+  --brand-primary: #6366f1;   /* Indigo — trust, intelligence */
+  --brand-primary-dim: #4f46e5;
+  --brand-secondary: #f59e0b; /* Amber — energy, urgency */
+  --brand-success: #10b981;   /* Emerald — success states only */
+  --brand-danger: #ef4444;
+  --brand-dark: #0f172a;      /* Slate 900 */
+  --brand-card: #1e293b;      /* Slate 800 */
+}
+
 @theme inline {
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-dim: var(--brand-primary-dim);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-success: var(--brand-success);
+  --color-brand-danger: var(--brand-danger);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-card: var(--brand-card);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
