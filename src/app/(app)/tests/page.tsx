@@ -20,38 +20,34 @@ import {
   Flame,
   Sparkles,
   Clock,
-  Zap,
-  TrendingUp,
-  ChevronRight,
-  Play,
-  RotateCcw,
   BarChart3,
-  Star,
+  ChevronRight,
+  RotateCcw,
 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getSyllabus } from "@/lib/syllabus"
 
 const tests = [
-  { name: "Police Constable (KPK / Islamabad)", icon: Shield, color: "bg-blue-400/10 text-blue-400", category: "Defense & Police", difficulty: "Medium", estQs: 100 },
-  { name: "Junior / Senior Clerk", icon: FileText, color: "bg-amber-400/10 text-amber-400", category: "Clerical & Admin", difficulty: "Easy", estQs: 75 },
-  { name: "Stenotypist", icon: Keyboard, color: "bg-pink-400/10 text-pink-400", category: "Clerical & Admin", difficulty: "Medium", estQs: 80 },
-  { name: "ASF", icon: Shield, color: "bg-cyan-400/10 text-cyan-400", category: "Defense & Police", difficulty: "Hard", estQs: 120 },
-  { name: "Air Force Commission Posts", icon: Plane, color: "bg-sky-400/10 text-sky-400", category: "Defense & Police", difficulty: "Hard", estQs: 150 },
-  { name: "MDCAT", icon: HeartPulse, color: "bg-red-400/10 text-red-400", category: "Medical & Engineering", difficulty: "Hard", estQs: 200 },
-  { name: "ECAT", icon: Cog, color: "bg-orange-400/10 text-orange-400", category: "Medical & Engineering", difficulty: "Medium", estQs: 150 },
-  { name: "SST (Senior Subject Specialist)", icon: GraduationCap, color: "bg-purple-400/10 text-purple-400", category: "Teaching", difficulty: "Medium", estQs: 100 },
-  { name: "CT (Certified Teacher)", icon: BookOpen, color: "bg-emerald-400/10 text-emerald-400", category: "Teaching", difficulty: "Easy", estQs: 80 },
-  { name: "PST (Primary School Teacher)", icon: School, color: "bg-teal-400/10 text-teal-400", category: "Teaching", difficulty: "Easy", estQs: 75 },
-  { name: "PASI (Assistant Sub Inspector)", icon: BadgeCheck, color: "bg-indigo-400/10 text-indigo-400", category: "Defense & Police", difficulty: "Hard", estQs: 120 },
-  { name: "CSS & PMS", icon: Landmark, color: "bg-yellow-400/10 text-yellow-400", category: "Civil Services", difficulty: "Hard", estQs: 300 },
+  { name: "Police Constable (KPK / Islamabad)", icon: Shield, color: "bg-blue-500", category: "Defense & Police", difficulty: "Medium", estQs: 100 },
+  { name: "Junior / Senior Clerk", icon: FileText, color: "bg-amber-500", category: "Clerical & Admin", difficulty: "Easy", estQs: 75 },
+  { name: "Stenotypist", icon: Keyboard, color: "bg-pink-500", category: "Clerical & Admin", difficulty: "Medium", estQs: 80 },
+  { name: "ASF", icon: Shield, color: "bg-cyan-500", category: "Defense & Police", difficulty: "Hard", estQs: 120 },
+  { name: "Air Force Commission Posts", icon: Plane, color: "bg-sky-500", category: "Defense & Police", difficulty: "Hard", estQs: 150 },
+  { name: "MDCAT", icon: HeartPulse, color: "bg-red-500", category: "Medical & Engineering", difficulty: "Hard", estQs: 200 },
+  { name: "ECAT", icon: Cog, color: "bg-orange-500", category: "Medical & Engineering", difficulty: "Medium", estQs: 150 },
+  { name: "SST (Senior Subject Specialist)", icon: GraduationCap, color: "bg-purple-500", category: "Teaching", difficulty: "Medium", estQs: 100 },
+  { name: "CT (Certified Teacher)", icon: BookOpen, color: "bg-emerald-500", category: "Teaching", difficulty: "Easy", estQs: 80 },
+  { name: "PST (Primary School Teacher)", icon: School, color: "bg-teal-500", category: "Teaching", difficulty: "Easy", estQs: 75 },
+  { name: "PASI (Assistant Sub Inspector)", icon: BadgeCheck, color: "bg-indigo-500", category: "Defense & Police", difficulty: "Hard", estQs: 120 },
+  { name: "CSS & PMS", icon: Landmark, color: "bg-yellow-500", category: "Civil Services", difficulty: "Hard", estQs: 300 },
 ]
 
 const categories = ["All", "Defense & Police", "Clerical & Admin", "Teaching", "Medical & Engineering", "Civil Services"]
 
 function difficultyColor(d: string) {
-  if (d === "Easy") return "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-  if (d === "Medium") return "bg-amber-400/10 text-amber-400 border-amber-400/20"
-  return "bg-red-400/10 text-red-400 border-red-400/20"
+  if (d === "Easy") return "bg-emerald-500 text-white"
+  if (d === "Medium") return "bg-amber-500 text-white"
+  return "bg-red-500 text-white"
 }
 
 function CircularProgress({ pct, size = 44 }: { pct: number; size?: number }) {
@@ -125,7 +121,6 @@ export default function TestsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Practice Tests</h1>
@@ -136,7 +131,6 @@ export default function TestsPage() {
         </span>
       </div>
 
-      {/* Recently Practiced */}
       {recentlyPracticed.length > 0 && showFeatured && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -151,7 +145,7 @@ export default function TestsPage() {
                 <button
                   key={t.name}
                   onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-                  className="group flex shrink-0 items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20"
+                  className="group flex shrink-0 items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30"
                 >
                   <CircularProgress pct={pct} />
                   <div>
@@ -170,22 +164,20 @@ export default function TestsPage() {
         </section>
       )}
 
-      {/* Featured Test */}
       {showFeatured && (
         <button
           onClick={() => router.push(`/tests/${encodeURIComponent(featured.name)}`)}
-          className="group relative w-full overflow-hidden rounded-2xl border border-indigo-400/20 bg-gradient-to-r from-indigo-500/10 via-violet-500/5 to-transparent p-6 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/40 active:scale-[0.99]"
+          className="group relative w-full overflow-hidden rounded-2xl border border-indigo-400/20 bg-indigo-400/10 p-6 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/40 active:scale-[0.99]"
         >
-          <div className="absolute right-0 top-0 h-32 w-32 -translate-y-1/2 translate-x-1/2 rounded-full bg-indigo-500/10 blur-2xl" />
           <div className="relative flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <span className="rounded-xl bg-indigo-400/10 p-3 text-indigo-400 transition group-hover:scale-110">
+              <span className="rounded-xl bg-indigo-500 p-3 text-white transition group-hover:scale-110">
                 <Shield className="h-6 w-6" />
               </span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-base font-semibold text-foreground">{featured.name}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-2 py-0.5 text-[10px] font-medium text-indigo-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-medium text-white">
                     <Sparkles className="h-3 w-3" /> Full Syllabus Ready
                   </span>
                 </div>
@@ -208,7 +200,6 @@ export default function TestsPage() {
         </button>
       )}
 
-      {/* Search + Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -226,7 +217,7 @@ export default function TestsPage() {
               onClick={() => setCategory(c)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
                 category === c
-                  ? "bg-indigo-400 text-black shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                  ? "bg-indigo-400 text-black"
                   : "border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
@@ -236,7 +227,6 @@ export default function TestsPage() {
         </div>
       </div>
 
-      {/* Test Grid */}
       {filtered.length === 0 ? (
         <EmptyState
           icon={SearchX}
@@ -255,10 +245,10 @@ export default function TestsPage() {
                 key={t.name}
                 onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
                 style={{ animationDelay: `${i * 0.05}s` }}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 text-left transition [animation-fill-mode:both] hover:-translate-y-1 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20 animate-fade-up"
+                className="group flex flex-col rounded-xl border border-border bg-card p-5 text-left transition [animation-fill-mode:both] hover:-translate-y-1 hover:border-indigo-400/30 animate-fade-up"
               >
                 <div className="flex items-start justify-between">
-                  <span className={`inline-block rounded-lg p-2.5 transition group-hover:scale-110 ${t.color}`}>
+                  <span className={`inline-block rounded-lg p-2.5 text-white transition group-hover:scale-110 ${t.color}`}>
                     <t.icon className="h-5 w-5" />
                   </span>
                   <div className="flex items-center gap-2">
@@ -272,7 +262,7 @@ export default function TestsPage() {
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t.category}</span>
                     <span className="text-[10px] text-muted-foreground">·</span>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${difficultyColor(t.difficulty)}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${difficultyColor(t.difficulty)}`}>
                       {t.difficulty}
                     </span>
                   </div>
@@ -280,12 +270,12 @@ export default function TestsPage() {
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {hasSyllabus && (
-                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                    <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-medium text-white">
                       Syllabus Ready
                     </span>
                   )}
                   {count >= 3 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-400/10 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-medium text-white">
                       <Flame className="h-3 w-3" /> Popular
                     </span>
                   )}

@@ -30,7 +30,6 @@ import {
   PenLine,
   Flag,
   Keyboard,
-  Zap,
   ChevronRight,
 } from "lucide-react"
 
@@ -146,22 +145,22 @@ function QuestionPalette({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : answered
-                        ? "bg-indigo-400/15 text-indigo-300"
+                        ? "bg-indigo-500 text-white"
                         : "bg-muted text-muted-foreground hover:bg-accent"
                     }`}
                   >
                     {i + 1}
                     {isFlagged && (
-                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-400" />
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500" />
                     )}
                   </button>
                 )
               })}
             </div>
             <div className="mt-3 flex items-center gap-3 border-t border-border pt-2 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Answered</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Answered</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Current</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> Flagged</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Flagged</span>
             </div>
           </div>
         </>
@@ -420,7 +419,6 @@ export default function TestPracticePage() {
 
     return (
       <div className="mx-auto max-w-5xl animate-fade-up pb-10">
-        {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => router.push("/tests")}
@@ -431,15 +429,14 @@ export default function TestPracticePage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-xs font-medium text-indigo-300">
-                <Zap className="h-3.5 w-3.5" />
+              <div className="mb-2 inline-flex items-center rounded-full bg-indigo-500 px-3 py-1 text-xs font-medium text-white">
                 Practice Studio
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 {testName}
               </h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Build a focused practice session. Choose your source, topics, difficulty and question count — then start.
+                Build a focused practice session. Choose your source, topics, difficulty and question count, then start.
               </p>
             </div>
             <div className="hidden rounded-2xl border border-border bg-card/60 px-4 py-3 text-right sm:block">
@@ -449,7 +446,6 @@ export default function TestPracticePage() {
           </div>
         </div>
 
-        {/* Source / mode */}
         <section>
           <div className="mb-3">
             <h2 className="text-sm font-semibold text-foreground">What do you want to practice?</h2>
@@ -464,12 +460,12 @@ export default function TestPracticePage() {
               }}
               className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
                 selectedMode === "syllabus"
-                  ? "border-indigo-400/60 bg-indigo-400/10 shadow-[0_0_30px_rgba(99,102,241,0.10)]"
+                  ? "border-indigo-400/60 bg-indigo-400/10"
                   : "border-border bg-card hover:-translate-y-0.5 hover:border-indigo-400/30 hover:bg-accent/40"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="rounded-xl bg-indigo-400/10 p-2.5 text-indigo-300">
+                <span className="rounded-xl bg-indigo-500 p-2.5 text-white">
                   <BookOpen className="h-5 w-5" />
                 </span>
                 {selectedMode === "syllabus" && <CheckCircle2 className="h-5 w-5 text-indigo-300" />}
@@ -484,12 +480,12 @@ export default function TestPracticePage() {
               onClick={() => setSource("material")}
               className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
                 selectedMode === "material"
-                  ? "border-violet-400/60 bg-violet-400/10 shadow-[0_0_30px_rgba(139,92,246,0.10)]"
+                  ? "border-violet-400/60 bg-violet-400/10"
                   : "border-border bg-card hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-accent/40"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300">
+                <span className="rounded-xl bg-violet-500 p-2.5 text-white">
                   <FolderOpen className="h-5 w-5" />
                 </span>
                 {selectedMode === "material" && <CheckCircle2 className="h-5 w-5 text-violet-300" />}
@@ -505,7 +501,7 @@ export default function TestPracticePage() {
                 onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/partb`)}
                 className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
               >
-                <span className="inline-flex rounded-xl bg-sky-400/10 p-2.5 text-sky-300">
+                <span className="inline-flex rounded-xl bg-sky-500 p-2.5 text-white">
                   <PenLine className="h-5 w-5" />
                 </span>
                 <div className="mt-4 font-semibold text-card-foreground">Written Practice</div>
@@ -520,7 +516,7 @@ export default function TestPracticePage() {
                 onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/mock`)}
                 className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
               >
-                <span className="inline-flex rounded-xl bg-amber-400/10 p-2.5 text-amber-300">
+                <span className="inline-flex rounded-xl bg-amber-500 p-2.5 text-white">
                   <Timer className="h-5 w-5" />
                 </span>
                 <div className="mt-4 font-semibold text-card-foreground">Full Mock</div>
@@ -532,7 +528,6 @@ export default function TestPracticePage() {
           </div>
         </section>
 
-        {/* Syllabus configuration */}
         {source === "syllabus" && syllabus ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
             <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
@@ -616,7 +611,6 @@ export default function TestPracticePage() {
               )}
             </section>
 
-            {/* Session settings */}
             <aside className="h-fit rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-6">
               <h2 className="font-semibold text-card-foreground">Session settings</h2>
               <p className="mt-1 text-xs text-muted-foreground">Tune the challenge before you start.</p>
@@ -666,8 +660,7 @@ export default function TestPracticePage() {
               </div>
 
               <div className="mt-6 rounded-xl border border-border bg-background/40 p-3.5">
-                <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                  <Zap className="h-3.5 w-3.5 text-indigo-300" />
+                <div className="text-xs font-medium text-foreground">
                   Ready when you are
                 </div>
                 <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
@@ -680,7 +673,7 @@ export default function TestPracticePage() {
               <Button
                 onClick={loadQuestions}
                 disabled={!canStartSyllabus}
-                className="mt-5 h-11 w-full gap-2 bg-indigo-500 text-white shadow-lg shadow-indigo-500/15 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-5 h-11 w-full gap-2 bg-indigo-500 text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Start Practice
                 <ArrowRight className="h-4 w-4" />
@@ -690,7 +683,7 @@ export default function TestPracticePage() {
         ) : (
           <section className="mt-8 rounded-2xl border border-violet-400/20 bg-violet-400/5 p-6 sm:p-8">
             <div className="mx-auto max-w-xl text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500 text-white">
                 <FolderOpen className="h-6 w-6" />
               </div>
               <h2 className="mt-4 text-lg font-semibold text-foreground">Practice from your materials</h2>
@@ -729,7 +722,7 @@ export default function TestPracticePage() {
 
               <Button
                 onClick={loadQuestions}
-                className="mt-5 h-11 w-full max-w-md gap-2 bg-indigo-500 text-white shadow-lg shadow-indigo-500/15 hover:bg-indigo-400"
+                className="mt-5 h-11 w-full max-w-md gap-2 bg-indigo-500 text-white hover:bg-indigo-400"
               >
                 Start Practice
                 <ArrowRight className="h-4 w-4" />
@@ -758,17 +751,16 @@ export default function TestPracticePage() {
       ? "You have a strong grasp of this material."
       : isAverage
       ? "You're getting there. A quick review can push this score higher."
-      : "Don't worry — use the review to find the gaps and try again."
+      : "Don't worry. Use the review to find the gaps and try again."
 
     return (
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-start justify-center py-8 sm:py-12 animate-fade-up">
         {isWin && <Confetti />}
 
         <div className="w-full">
-          {/* Result header */}
           <div className="text-center">
             <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${
-              isWin ? "bg-indigo-500/10 text-indigo-300" : "bg-amber-500/10 text-amber-400"
+              isWin ? "bg-indigo-500 text-white" : "bg-amber-500 text-white"
             }`}>
               <Trophy className="h-8 w-8" />
             </div>
@@ -784,8 +776,7 @@ export default function TestPracticePage() {
             </p>
           </div>
 
-          {/* Score card */}
-          <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-border bg-card p-5 sm:p-6">
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
               <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-indigo-400/15">
                 <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-indigo-400 border-r-indigo-400 -rotate-45" />
@@ -796,17 +787,17 @@ export default function TestPracticePage() {
               </div>
 
               <div className="grid w-full grid-cols-3 gap-2">
-                <div className="rounded-xl border border-indigo-400/20 bg-indigo-400/5 p-3 text-center">
-                  <div className="text-xl font-bold text-indigo-300">{correct}</div>
-                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Correct</div>
+                <div className="rounded-xl bg-indigo-500 p-3 text-center">
+                  <div className="text-xl font-bold text-white">{correct}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-white/80">Correct</div>
                 </div>
-                <div className="rounded-xl border border-red-400/20 bg-red-400/5 p-3 text-center">
-                  <div className="text-xl font-bold text-red-300">{wrong}</div>
-                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Wrong</div>
+                <div className="rounded-xl bg-red-500 p-3 text-center">
+                  <div className="text-xl font-bold text-white">{wrong}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-white/80">Wrong</div>
                 </div>
-                <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-center">
-                  <div className="text-xl font-bold text-amber-300">{timedOut}</div>
-                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Timed out</div>
+                <div className="rounded-xl bg-amber-500 p-3 text-center">
+                  <div className="text-xl font-bold text-white">{timedOut}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-white/80">Timed out</div>
                 </div>
               </div>
             </div>
@@ -819,7 +810,6 @@ export default function TestPracticePage() {
             )}
           </div>
 
-          {/* Actions */}
           <div className="mx-auto mt-5 max-w-2xl">
             {showShare ? (
               <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
@@ -846,7 +836,7 @@ export default function TestPracticePage() {
               <div className="grid gap-2 sm:grid-cols-3">
                 <Button
                   onClick={() => setReviewMode(true)}
-                  className="h-11 gap-2 bg-indigo-500 text-white shadow-md shadow-indigo-500/15 hover:bg-indigo-400"
+                  className="h-11 gap-2 bg-indigo-500 text-white hover:bg-indigo-400"
                 >
                   <Eye className="h-4 w-4" />
                   Review answers
@@ -896,27 +886,14 @@ export default function TestPracticePage() {
             const correct = userAns === qItem.answer
             const timedOut = userAns === "TIMEOUT"
             return (
-              <div
-                key={i}
-                className={`rounded-xl border p-3.5 ${
-                  correct
-                    ? "border-indigo-400/30 bg-indigo-400/5"
-                    : timedOut
-                    ? "border-amber-400/30 bg-amber-400/5"
-                    : "border-red-400/30 bg-red-400/5"
-                }`}
-              >
+              <div key={i} className="rounded-xl border border-border bg-card p-3.5">
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm font-medium text-foreground">
                     {i + 1}. {qItem.question}
                   </span>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      correct
-                        ? "bg-indigo-400/10 text-indigo-300"
-                        : timedOut
-                        ? "bg-amber-400/10 text-amber-400"
-                        : "bg-red-400/10 text-red-400"
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-white ${
+                      correct ? "bg-indigo-500" : timedOut ? "bg-amber-500" : "bg-red-500"
                     }`}
                   >
                     {correct ? "Correct" : timedOut ? "Timed Out" : "Wrong"}
@@ -927,7 +904,7 @@ export default function TestPracticePage() {
                     const isUser = userAns === opt
                     const isAns = opt === qItem.answer
                     let cls = "text-muted-foreground"
-                    if (isAns) cls = "font-medium text-indigo-300"
+                    if (isAns) cls = "font-medium text-indigo-400"
                     else if (isUser && !isAns) cls = "font-medium text-red-400 line-through"
                     return (
                       <div key={j} className={`text-sm ${cls}`}>
@@ -964,7 +941,6 @@ export default function TestPracticePage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
-      {/* Top Bar */}
       <div className="flex items-center gap-4">
         <button onClick={() => router.push("/tests")} className="text-muted-foreground transition hover:text-foreground">
           <X className="h-5 w-5" />
@@ -984,14 +960,13 @@ export default function TestPracticePage() {
         />
       </div>
 
-      {/* Timer + Flag */}
       <div className="flex items-center justify-between">
         <CircularTimer duration={45} onTimeout={handleTimeout} keyReset={index} />
         <div className="flex items-center gap-2">
           <button
             onClick={toggleFlag}
             className={`rounded-lg p-2 transition active:scale-90 ${
-              isFlagged ? "bg-amber-400/10 text-amber-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              isFlagged ? "bg-amber-500 text-white" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             title={isFlagged ? "Unflag question" : "Flag for review"}
           >
@@ -1000,7 +975,7 @@ export default function TestPracticePage() {
           <button
             onClick={toggleBookmark}
             className={`rounded-lg p-2 transition active:scale-90 ${
-              isBookmarked ? "bg-yellow-400/10 text-yellow-400" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              isBookmarked ? "bg-yellow-500 text-white" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
             title={isBookmarked ? "Remove from saved" : "Save this question"}
           >
@@ -1009,8 +984,7 @@ export default function TestPracticePage() {
         </div>
       </div>
 
-      {/* Question */}
-      <div className="rounded-2xl border border-border bg-card/60 p-4 shadow-sm sm:p-5">
+      <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-300">
             Question {index + 1}
@@ -1024,14 +998,13 @@ export default function TestPracticePage() {
         </h1>
       </div>
 
-      {/* Options */}
       <div className="space-y-2.5">
         {q.options.map((opt, j) => {
           const isPick = picked === opt
           const isAns = opt === q.answer
-          let cls = "border-border bg-card text-foreground hover:border-indigo-400/40 hover:bg-indigo-400/5 hover:shadow-sm hover:shadow-indigo-500/5"
-          if (answered && isAns) cls = "border-indigo-400 bg-indigo-400/10 text-indigo-200 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
-          else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500/10 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+          let cls = "border-border bg-card text-foreground hover:border-indigo-400/40"
+          if (answered && isAns) cls = "border-indigo-500 bg-indigo-500 text-white"
+          else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500 text-white"
           else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
             <button
@@ -1041,25 +1014,22 @@ export default function TestPracticePage() {
               className={`group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm transition-all duration-150 active:scale-[0.995] ${cls} disabled:cursor-not-allowed sm:px-4 sm:py-3.5`}
             >
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition ${
-                answered && isAns
-                  ? "bg-indigo-500 text-white"
-                  : answered && isPick && !isAns
-                  ? "bg-red-500 text-white"
+                answered && (isAns || isPick)
+                  ? "bg-white/20 text-white"
                   : answered
                   ? "bg-muted text-muted-foreground"
-                  : "bg-muted text-muted-foreground group-hover:bg-indigo-500/10 group-hover:text-indigo-400"
+                  : "bg-muted text-muted-foreground group-hover:bg-indigo-500 group-hover:text-white"
               }`}>
                 {String.fromCharCode(65 + j)}
               </span>
               <span className="flex-1">{opt}</span>
-              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-indigo-300" />}
-              {answered && isPick && !isAns && <XCircle className="h-5 w-5 shrink-0 text-red-400" />}
+              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />}
+              {answered && isPick && !isAns && <XCircle className="h-5 w-5 shrink-0 text-white" />}
             </button>
           )
         })}
       </div>
 
-      {/* Keyboard Hints */}
       {!answered && (
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1">
@@ -1075,27 +1045,24 @@ export default function TestPracticePage() {
         </div>
       )}
 
-      {/* Feedback */}
       {answered && (
         <div
-          className={`overflow-hidden rounded-2xl border ${
+          className={`overflow-hidden rounded-2xl border text-white ${
             isCorrect
-              ? "animate-bounce-in border-indigo-400/30 bg-indigo-400/5"
-              : "animate-shake border-red-400/30 bg-red-400/5"
+              ? "animate-bounce-in border-indigo-500 bg-indigo-500"
+              : "animate-shake border-red-500 bg-red-500"
           }`}
         >
           <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="flex items-center gap-3">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                isCorrect ? "bg-indigo-400/10 text-indigo-300" : "bg-red-400/10 text-red-300"
-              }`}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white">
                 {isCorrect ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
               </div>
               <div>
-                <div className={`font-semibold ${isCorrect ? "text-indigo-200" : "text-red-200"}`}>
+                <div className="font-semibold text-white">
                   {isCorrect ? "Correct answer" : picked === "TIMEOUT" ? "Time's up" : "Not quite"}
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
+                <div className="mt-0.5 text-xs text-white/80">
                   {isCorrect ? "Nice work. Keep the momentum going." : "Review the explanation before moving on."}
                 </div>
               </div>
@@ -1104,12 +1071,12 @@ export default function TestPracticePage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpl(!showExpl)}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-white/80 transition hover:bg-white/10 hover:text-white"
               >
                 Explanation
                 <ChevronDown className={`h-4 w-4 transition-transform ${showExpl ? "rotate-180" : ""}`} />
               </button>
-              <Button onClick={next} className="gap-2 bg-indigo-500 text-white shadow-md shadow-indigo-500/15 hover:bg-indigo-400">
+              <Button onClick={next} className="gap-2 bg-white text-black hover:bg-white/90">
                 {index + 1 >= questions.length ? "Finish" : "Next"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -1117,8 +1084,8 @@ export default function TestPracticePage() {
           </div>
 
           {showExpl && (
-            <div className="border-t border-border/70 bg-background/30 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground sm:px-4 sm:py-3.5">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-foreground">
+            <div className="border-t border-white/20 px-3.5 py-3 text-xs leading-relaxed text-white/90 sm:px-4 sm:py-3.5">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-white">
                 Why this is the answer
               </span>
               {q.explanation}
@@ -1127,7 +1094,6 @@ export default function TestPracticePage() {
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex items-center justify-between pt-2">
         <button
           onClick={() => jumpTo(index - 1)}

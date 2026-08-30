@@ -71,15 +71,15 @@ function formatDuration(seconds: number) {
 }
 
 function accuracyColor(pct: number) {
-  if (pct >= 80) return "bg-emerald-400/10 text-emerald-400 border-emerald-400/20"
-  if (pct >= 50) return "bg-amber-400/10 text-amber-400 border-amber-400/20"
-  return "bg-red-400/10 text-red-400 border-red-400/20"
+  if (pct >= 80) return "bg-emerald-500 text-white"
+  if (pct >= 50) return "bg-amber-500 text-white"
+  return "bg-red-500 text-white"
 }
 
 function barColor(pct: number) {
-  if (pct >= 80) return "bg-emerald-400"
-  if (pct >= 50) return "bg-amber-400"
-  return "bg-red-400"
+  if (pct >= 80) return "bg-emerald-500"
+  if (pct >= 50) return "bg-amber-500"
+  return "bg-red-500"
 }
 
 function calcStreak(rows: HistoryRow[]) {
@@ -148,9 +148,9 @@ function StatCard({
   const n = useCountUp(value)
   const display = fmt ? fmt(n) : `${n}`
   return (
-    <div className="group rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-border/80 hover:shadow-lg hover:shadow-black/20">
+    <div className="group rounded-xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-indigo-400/30">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className={`rounded-lg p-1.5 transition group-hover:scale-110 ${color}`}>
+        <span className={`rounded-lg p-1.5 text-white transition group-hover:scale-110 ${color}`}>
           <Icon className="h-4 w-4" />
         </span>
         {label}
@@ -180,7 +180,7 @@ function GoalRing({ done, goal }: { done: number; goal: number }) {
           strokeWidth="10"
           strokeLinecap="round"
           stroke="currentColor"
-          className="text-indigo-400 transition-all duration-1000 ease-out"
+          className="text-emerald-500 transition-all duration-1000 ease-out"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - p)}
         />
@@ -237,7 +237,7 @@ function StreakHeatmap({ rows }: { rows: HistoryRow[] }) {
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="rounded-lg bg-indigo-400/10 p-1.5 text-indigo-400">
+          <span className="rounded-lg bg-indigo-500 p-1.5 text-white">
             <Calendar className="h-4 w-4" />
           </span>
           Activity Heatmap
@@ -300,9 +300,9 @@ function QuickActions({ weakTest, onPractice }: { weakTest: string | null; onPra
     <div className="grid gap-3 sm:grid-cols-3">
       <button
         onClick={() => router.push("/tests")}
-        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20"
+        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30"
       >
-        <span className="rounded-lg bg-indigo-400/10 p-2 text-indigo-400 transition group-hover:scale-110">
+        <span className="rounded-lg bg-indigo-500 p-2 text-white transition group-hover:scale-110">
           <Brain className="h-5 w-5" />
         </span>
         <div>
@@ -315,23 +315,23 @@ function QuickActions({ weakTest, onPractice }: { weakTest: string | null; onPra
       {weakTest ? (
         <button
           onClick={onPractice}
-          className="group flex items-center gap-3 rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-400/10 to-transparent p-4 text-left transition hover:-translate-y-0.5 hover:border-amber-400/40"
+          className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-red-400/30"
         >
-          <span className="rounded-lg bg-amber-400/10 p-2 text-amber-400 transition group-hover:scale-110">
+          <span className="rounded-lg bg-red-500 p-2 text-white transition group-hover:scale-110">
             <Dumbbell className="h-5 w-5" />
           </span>
           <div>
             <div className="text-sm font-medium">Weak Area</div>
             <div className="text-xs text-muted-foreground">{weakTest}</div>
           </div>
-          <ChevronRight className="ml-auto h-4 w-4 text-amber-400 transition group-hover:translate-x-0.5" />
+          <ChevronRight className="ml-auto h-4 w-4 text-red-400 transition group-hover:translate-x-0.5" />
         </button>
       ) : (
         <button
           onClick={() => router.push("/tests")}
           className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30"
         >
-          <span className="rounded-lg bg-emerald-400/10 p-2 text-emerald-400 transition group-hover:scale-110">
+          <span className="rounded-lg bg-emerald-500 p-2 text-white transition group-hover:scale-110">
             <Star className="h-5 w-5" />
           </span>
           <div>
@@ -344,9 +344,9 @@ function QuickActions({ weakTest, onPractice }: { weakTest: string | null; onPra
 
       <button
         onClick={() => router.push("/tests")}
-        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30 hover:shadow-lg hover:shadow-black/20"
+        className="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-400/30"
       >
-        <span className="rounded-lg bg-orange-400/10 p-2 text-orange-400 transition group-hover:scale-110">
+        <span className="rounded-lg bg-orange-500 p-2 text-white transition group-hover:scale-110">
           <Trophy className="h-5 w-5" />
         </span>
         <div>
@@ -363,7 +363,7 @@ function SkillTree({ breakdown }: { breakdown: ReturnType<typeof summarize> }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="rounded-lg bg-violet-400/10 p-1.5 text-violet-400">
+        <span className="rounded-lg bg-violet-500 p-1.5 text-white">
           <Target className="h-4 w-4" />
         </span>
         Subject Mastery
@@ -452,7 +452,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-up">
-      {/* Greeting */}
       <div className="flex items-center gap-3">
         <GreetingIcon className="h-5 w-5 text-amber-400" />
         <h1 className="text-2xl font-semibold text-foreground">
@@ -460,18 +459,16 @@ export default function DashboardPage() {
         </h1>
       </div>
 
-      {/* Quick Actions */}
       <QuickActions
         weakTest={weak.length > 0 ? weak[0].name : null}
         onPractice={() => router.push(`/tests/${encodeURIComponent(weak[0].name)}`)}
       />
 
-      {/* Top Row: XP + Daily Goal + Weekly */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="rounded-lg bg-yellow-400/10 p-1.5 text-yellow-400">
+              <span className="rounded-lg bg-yellow-500 p-1.5 text-white">
                 <Zap className="h-4 w-4" />
               </span>
               Level {level}
@@ -480,7 +477,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-yellow-400 transition-all duration-1000"
+              className="h-full rounded-full bg-yellow-500 transition-all duration-1000"
               style={{ width: `${Math.max((intoLevel / XP_PER_LEVEL) * 100, 2)}%` }}
             />
           </div>
@@ -492,7 +489,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
           <div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="rounded-lg bg-indigo-400/10 p-1.5 text-indigo-400">
+              <span className="rounded-lg bg-emerald-500 p-1.5 text-white">
                 <Target className="h-4 w-4" />
               </span>
               Daily Goal
@@ -507,7 +504,7 @@ export default function DashboardPage() {
 
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="rounded-lg bg-cyan-400/10 p-1.5 text-cyan-400">
+            <span className="rounded-lg bg-cyan-500 p-1.5 text-white">
               <Activity className="h-4 w-4" />
             </span>
             This Week
@@ -521,11 +518,11 @@ export default function DashboardPage() {
               >
                 <div
                   className={`w-full rounded-t-md transition-all duration-700 ${
-                    w.qs === 0 ? "bg-muted" : w.isToday ? "bg-indigo-400" : "bg-indigo-400/50"
+                    w.qs === 0 ? "bg-muted" : w.isToday ? "bg-cyan-400" : "bg-cyan-600"
                   }`}
                   style={{ height: `${Math.max((w.qs / maxQs) * 100, 4)}%` }}
                 />
-                <span className={`text-[10px] ${w.isToday ? "font-bold text-indigo-400" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] ${w.isToday ? "font-bold text-cyan-400" : "text-muted-foreground"}`}>
                   {w.label}
                 </span>
               </div>
@@ -534,27 +531,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard icon={BarChart3} label="Attempts" value={attempts} color="bg-blue-400/10 text-blue-400" />
-        <StatCard icon={HelpCircle} label="Questions" value={answered} color="bg-purple-400/10 text-purple-400" />
-        <StatCard icon={Clock} label="Study Time" value={totalDuration} color="bg-cyan-400/10 text-cyan-400" fmt={formatDuration} />
-        <StatCard icon={Target} label="Accuracy" value={accuracy} color="bg-emerald-400/10 text-emerald-400" fmt={(n) => `${n}%`} />
-        <StatCard icon={Flame} label="Day Streak" value={streak} color="bg-orange-400/10 text-orange-400" />
+        <StatCard icon={BarChart3} label="Attempts" value={attempts} color="bg-blue-500" />
+        <StatCard icon={HelpCircle} label="Questions" value={answered} color="bg-purple-500" />
+        <StatCard icon={Clock} label="Study Time" value={totalDuration} color="bg-cyan-500" fmt={formatDuration} />
+        <StatCard icon={Target} label="Accuracy" value={accuracy} color="bg-emerald-500" fmt={(n) => `${n}%`} />
+        <StatCard icon={Flame} label="Day Streak" value={streak} color="bg-orange-500" />
       </div>
 
-      {/* Heatmap + Skill Tree */}
       <div className="grid gap-4 lg:grid-cols-2">
         <StreakHeatmap rows={rows} />
         <SkillTree breakdown={breakdown} />
       </div>
 
-      {/* Weak Area Alert */}
       {weak.length > 0 && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/20 bg-gradient-to-r from-amber-400/10 to-transparent p-5">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-indigo-400/20 bg-indigo-400/10 p-5">
           <div className="flex items-center gap-3">
-            <span className="rounded-lg bg-amber-400/10 p-2 text-amber-400">
-              <AlertTriangle className="h-5 w-5" />
+            <span className="rounded-lg bg-indigo-500 p-2 text-white">
+              <Target className="h-5 w-5" />
             </span>
             <div>
               <div className="text-sm font-medium text-foreground">Focus today: {weak[0].name}</div>
@@ -565,14 +559,13 @@ export default function DashboardPage() {
           </div>
           <button
             onClick={() => router.push(`/tests/${encodeURIComponent(weak[0].name)}`)}
-            className="shrink-0 rounded-full bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300 active:scale-95"
+            className="shrink-0 rounded-full bg-indigo-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-indigo-300 active:scale-95"
           >
             Practice Now
           </button>
         </div>
       )}
 
-      {/* Test Breakdown with Sparklines */}
       {breakdown.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -607,11 +600,10 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Needs Improvement */}
       {weak.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <AlertTriangle className="h-4 w-4 text-red-400" />
             <h2 className="font-medium text-foreground">Needs Improvement</h2>
             <span className="text-xs text-muted-foreground">(below 50% accuracy)</span>
           </div>
@@ -619,7 +611,7 @@ export default function DashboardPage() {
             {weak.map((t) => (
               <div
                 key={t.name}
-                className="flex items-center justify-between rounded-xl border border-amber-400/20 bg-amber-400/5 px-5 py-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 text-sm"
               >
                 <div className="min-w-0">
                   <span className="block truncate font-medium text-card-foreground">{t.name}</span>
@@ -628,12 +620,12 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-0.5 text-xs font-medium text-amber-400">
+                  <span className="rounded-full bg-red-500 px-2.5 py-0.5 text-xs font-medium text-white">
                     {t.pct}%
                   </span>
                   <button
                     onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-                    className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground transition hover:opacity-90"
+                    className="rounded-full bg-indigo-400 px-3 py-1 text-xs font-medium text-black transition hover:bg-indigo-300"
                   >
                     Practice
                   </button>
@@ -644,7 +636,6 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {/* Recent Attempts */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <History className="h-4 w-4 text-muted-foreground" />
@@ -671,7 +662,7 @@ export default function DashboardPage() {
             action={
               <button
                 onClick={() => router.push("/tests")}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-indigo-400 px-4 py-2 text-sm font-medium text-black transition hover:bg-indigo-300"
               >
                 Browse Tests <ArrowRight className="h-4 w-4" />
               </button>
@@ -685,7 +676,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 text-sm transition hover:bg-accent"
+                  className="flex items-center justify-between rounded-xl border border-border bg-card px-5 py-3 text-sm transition hover:border-indigo-400/30"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="shrink-0 rounded-lg bg-muted p-2 text-muted-foreground">
@@ -703,7 +694,7 @@ export default function DashboardPage() {
                     <span>
                       {r.correct}/{r.total}
                     </span>
-                    <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${accuracyColor(pct)}`}>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${accuracyColor(pct)}`}>
                       {pct}%
                     </span>
                   </div>
