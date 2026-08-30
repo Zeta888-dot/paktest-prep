@@ -146,7 +146,7 @@ function QuestionPalette({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : answered
-                        ? "bg-emerald-500/15 text-emerald-400"
+                        ? "bg-indigo-400/15 text-indigo-300"
                         : "bg-muted text-muted-foreground hover:bg-accent"
                     }`}
                   >
@@ -183,7 +183,7 @@ export default function TestPracticePage() {
   const [count, setCount] = useState(5)
   const [ready, setReady] = useState(false)
 
-  const [phase, setPhase] = useState<"source" | "subject" | "topic" | "quiz">("source")
+  const [phase, setPhase] = useState<"setup" | "quiz">("setup")
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null)
   const [selectedTopics, setSelectedTopics] = useState<string[]>([])
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium")
@@ -337,16 +337,16 @@ export default function TestPracticePage() {
   }
 
   function restart() {
-    setPhase(syllabus ? "subject" : "source")
-    setSelectedSubject(null)
+    setDone(false)
+    setReviewMode(false)
     setSelectedTopics([])
-    loadQuestions()
+    setPhase("setup")
   }
 
   function handleTimeout() {
     if (!answered && q) {
-      setPicked("__timeout__")
-      setAnswers((prev) => ({ ...prev, [index]: "__timeout__" }))
+      setPicked("TIMEOUT")
+      setAnswers((prev) => ({ ...prev, [index]: "TIMEOUT" }))
     }
   }
 
@@ -403,7 +403,7 @@ export default function TestPracticePage() {
         <h2 className="mt-4 text-lg font-semibold text-foreground">Oops!</h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
         <div className="mt-6 flex gap-3">
-          <Button onClick={() => { setError(""); if (phase === "topic") loadQuestions() }}>
+          <Button onClick={() => { setError(""); if (phase === "setup") loadQuestions() }}>
             <RotateCcw className="mr-2 h-4 w-4" /> Try Again
           </Button>
           <Button variant="outline" onClick={() => router.push("/tests")}>
@@ -414,181 +414,329 @@ export default function TestPracticePage() {
     )
   }
 
-  if (phase === "source") {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
-          <p className="mt-2 text-muted-foreground">Where should we generate questions from?</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <button
-            onClick={() => {
-              setSource("syllabus")
-              if (syllabus) setPhase("subject")
-              else loadQuestions()
-            }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
-          >
-            <span className="inline-block rounded-lg bg-indigo-400/10 p-2 text-indigo-400">
-              <BookOpen className="h-5 w-5" />
-            </span>
-            <div className="mt-3 font-medium text-card-foreground">From Syllabus</div>
-            <p className="mt-1 text-sm text-muted-foreground">AI-generated MCQs based on the official syllabus.</p>
-          </button>
-          <button
-            onClick={() => {
-              setSource("material")
-              loadQuestions()
-            }}
-            className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
-          >
-            <span className="inline-block rounded-lg bg-violet-400/10 p-2 text-violet-400">
-              <FolderOpen className="h-5 w-5" />
-            </span>
-            <div className="mt-3 font-medium text-card-foreground">From My Material</div>
-            <p className="mt-1 text-sm text-muted-foreground">MCQs from the notes you uploaded for this test.</p>
-          </button>
-          {syllabus && (
-            <button
-              onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/partb`)}
-              className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
-            >
-              <span className="inline-block rounded-lg bg-emerald-400/10 p-2 text-emerald-400">
-                <PenLine className="h-5 w-5" />
-              </span>
-              <div className="mt-3 font-medium text-card-foreground">Part B (Subjective)</div>
-              <p className="mt-1 text-sm text-muted-foreground">Translation and sentence formation with instant checking.</p>
-            </button>
-          )}
-          {syllabus && (
-            <button
-              onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/mock`)}
-              className="group rounded-xl border border-border bg-card p-6 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
-            >
-              <span className="inline-block rounded-lg bg-orange-400/10 p-2 text-orange-400">
-                <Timer className="h-5 w-5" />
-              </span>
-              <div className="mt-3 font-medium text-card-foreground">Full Mock Test</div>
-              <p className="mt-1 text-sm text-muted-foreground">100 marks, timed exam simulation with Part A and Part B.</p>
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
+  if (phase === "setup") {
+    const selectedMode = source === "syllabus" ? "syllabus" : "material"
+    const canStartSyllabus = selectedSubject !== null && selectedTopics.length > 0
 
-  if (phase === "subject" && syllabus) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setPhase("source")} className="text-muted-foreground hover:text-foreground transition">
-            <ChevronLeft className="h-5 w-5" />
+      <div className="mx-auto max-w-5xl animate-fade-up pb-10">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => router.push("/tests")}
+            className="mb-5 flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back to Tests
           </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{testName}</h1>
-            <p className="mt-1 text-muted-foreground">Select a subject</p>
-          </div>
-        </div>
-        <div className="grid gap-3">
-          {syllabus.subjects.map((subj) => (
-            <button
-              key={subj.name}
-              onClick={() => {
-                setSelectedSubject(subj)
-                setSelectedTopics([])
-                setPhase("topic")
-              }}
-              className="flex items-center justify-between rounded-xl border border-border bg-card p-5 text-left transition hover:-translate-y-0.5 hover:border-foreground/25 hover:bg-accent active:scale-[0.98]"
-            >
-              <div>
-                <div className="font-medium text-card-foreground">{subj.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{subj.topics.length} topics</div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-3 py-1 text-xs font-medium text-indigo-300">
+                <Zap className="h-3.5 w-3.5" />
+                Practice Studio
               </div>
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {subj.weightage}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === "topic" && selectedSubject) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setPhase("subject")} className="text-muted-foreground hover:text-foreground transition">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{selectedSubject.name}</h1>
-            <p className="mt-1 text-muted-foreground">Select topics and difficulty</p>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                {testName}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Build a focused practice session. Choose your source, topics, difficulty and question count — then start.
+              </p>
+            </div>
+            <div className="hidden rounded-2xl border border-border bg-card/60 px-4 py-3 text-right sm:block">
+              <div className="text-xs text-muted-foreground">Session</div>
+              <div className="mt-1 text-sm font-semibold text-foreground">{count} questions</div>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {(["easy", "medium", "hard"] as const).map((d) => (
+        {/* Source / mode */}
+        <section>
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-foreground">What do you want to practice?</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Pick a mode to configure your session.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button
-              key={d}
-              onClick={() => setDifficulty(d)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium capitalize transition active:scale-[0.98] ${
-                difficulty === d
-                  ? d === "easy"
-                    ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-400"
-                    : d === "medium"
-                    ? "border-amber-400/50 bg-amber-400/10 text-amber-400"
-                    : "border-red-400/50 bg-red-400/10 text-red-400"
-                  : "border-border text-muted-foreground hover:bg-accent"
+              onClick={() => {
+                setSource("syllabus")
+                if (!selectedSubject && syllabus) setSelectedSubject(syllabus.subjects[0] ?? null)
+              }}
+              className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
+                selectedMode === "syllabus"
+                  ? "border-indigo-400/60 bg-indigo-400/10 shadow-[0_0_30px_rgba(99,102,241,0.10)]"
+                  : "border-border bg-card hover:-translate-y-0.5 hover:border-indigo-400/30 hover:bg-accent/40"
               }`}
             >
-              {d}
-            </button>
-          ))}
-        </div>
-
-        <button
-          onClick={selectAllTopics}
-          className={`w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] ${
-            selectedTopics.length === selectedSubject.topics.length
-              ? "border-primary bg-primary/10 text-primary"
-              : "border-border text-muted-foreground hover:bg-accent"
-          }`}
-        >
-          {selectedTopics.length === selectedSubject.topics.length ? "✓ All Topics Selected" : "Select All Topics"}
-        </button>
-
-        <div className="grid gap-2">
-          {selectedSubject.topics.map((topic) => {
-            const isSelected = selectedTopics.includes(topic)
-            return (
-              <button
-                key={topic}
-                onClick={() => toggleTopic(topic)}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition active:scale-[0.98] ${
-                  isSelected
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                <span
-                  className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border"
-                  }`}
-                >
-                  {isSelected && <Check className="h-3 w-3" />}
+              <div className="flex items-center justify-between">
+                <span className="rounded-xl bg-indigo-400/10 p-2.5 text-indigo-300">
+                  <BookOpen className="h-5 w-5" />
                 </span>
-                {topic}
-              </button>
-            )
-          })}
-        </div>
+                {selectedMode === "syllabus" && <CheckCircle2 className="h-5 w-5 text-indigo-300" />}
+              </div>
+              <div className="mt-4 font-semibold text-card-foreground">Syllabus Practice</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Target exact subjects and topics from the syllabus.
+              </p>
+            </button>
 
-        <Button onClick={loadQuestions} disabled={selectedTopics.length === 0} className="w-full gap-2">
-          Generate MCQs ({selectedTopics.length} topic{selectedTopics.length > 1 ? "s" : ""}){" "}
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+            <button
+              onClick={() => setSource("material")}
+              className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
+                selectedMode === "material"
+                  ? "border-violet-400/60 bg-violet-400/10 shadow-[0_0_30px_rgba(139,92,246,0.10)]"
+                  : "border-border bg-card hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-accent/40"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300">
+                  <FolderOpen className="h-5 w-5" />
+                </span>
+                {selectedMode === "material" && <CheckCircle2 className="h-5 w-5 text-violet-300" />}
+              </div>
+              <div className="mt-4 font-semibold text-card-foreground">My Materials</div>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Practice from notes and documents you have uploaded.
+              </p>
+            </button>
+
+            {syllabus && (
+              <button
+                onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/partb`)}
+                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
+              >
+                <span className="inline-flex rounded-xl bg-sky-400/10 p-2.5 text-sky-300">
+                  <PenLine className="h-5 w-5" />
+                </span>
+                <div className="mt-4 font-semibold text-card-foreground">Written Practice</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Translation and sentence formation with instant checking.
+                </p>
+              </button>
+            )}
+
+            {syllabus && (
+              <button
+                onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/mock`)}
+                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
+              >
+                <span className="inline-flex rounded-xl bg-amber-400/10 p-2.5 text-amber-300">
+                  <Timer className="h-5 w-5" />
+                </span>
+                <div className="mt-4 font-semibold text-card-foreground">Full Mock</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Simulate the complete exam under timed conditions.
+                </p>
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Syllabus configuration */}
+        {source === "syllabus" && syllabus ? (
+          <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
+            <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-card-foreground">Focus areas</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Choose a subject and the topics you want to drill.</p>
+                </div>
+                <button
+                  onClick={selectAllTopics}
+                  disabled={!selectedSubject}
+                  className="text-xs font-medium text-indigo-300 transition hover:text-indigo-200 disabled:opacity-40"
+                >
+                  {selectedSubject && selectedTopics.length === selectedSubject.topics.length ? "Clear all" : "Select all"}
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-2">
+                {syllabus.subjects.map((subj) => {
+                  const active = selectedSubject?.name === subj.name
+                  return (
+                    <button
+                      key={subj.name}
+                      onClick={() => {
+                        setSelectedSubject(subj)
+                        setSelectedTopics([])
+                      }}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                        active
+                          ? "border-indigo-400/50 bg-indigo-400/10"
+                          : "border-border bg-background/40 hover:border-foreground/15 hover:bg-accent/40"
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className={`truncate text-sm font-medium ${active ? "text-indigo-200" : "text-card-foreground"}`}>
+                          {subj.name}
+                        </div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">{subj.topics.length} topics</div>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                        active ? "bg-indigo-400/15 text-indigo-300" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {subj.weightage}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {selectedSubject && (
+                <div className="mt-5 border-t border-border pt-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {selectedTopics.length} of {selectedSubject.topics.length} topics selected
+                    </span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {selectedSubject.topics.map((topic) => {
+                      const active = selectedTopics.includes(topic)
+                      return (
+                        <button
+                          key={topic}
+                          onClick={() => toggleTopic(topic)}
+                          className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-xs transition active:scale-[0.99] ${
+                            active
+                              ? "border-indigo-400/40 bg-indigo-400/10 text-foreground"
+                              : "border-border bg-background/30 text-muted-foreground hover:bg-accent/40"
+                          }`}
+                        >
+                          <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            active ? "border-indigo-400 bg-indigo-400 text-white" : "border-border"
+                          }`}>
+                            {active && <Check className="h-3 w-3" />}
+                          </span>
+                          <span className="line-clamp-2">{topic}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Session settings */}
+            <aside className="h-fit rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-6">
+              <h2 className="font-semibold text-card-foreground">Session settings</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Tune the challenge before you start.</p>
+
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Difficulty</span>
+                  <span className="text-xs font-semibold capitalize text-indigo-300">{difficulty}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["easy", "medium", "hard"] as const).map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDifficulty(d)}
+                      className={`rounded-xl border px-2 py-2.5 text-xs font-medium capitalize transition ${
+                        difficulty === d
+                          ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
+                          : "border-border text-muted-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Questions</span>
+                  <span className="text-xs font-semibold text-indigo-300">{count}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 20].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setCount(n)}
+                      className={`rounded-xl border py-2.5 text-xs font-semibold transition ${
+                        count === n
+                          ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
+                          : "border-border text-muted-foreground hover:bg-accent/50"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-xl border border-border bg-background/40 p-3.5">
+                <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                  <Zap className="h-3.5 w-3.5 text-indigo-300" />
+                  Ready when you are
+                </div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {selectedSubject
+                    ? `${selectedTopics.length} topic${selectedTopics.length === 1 ? "" : "s"} selected from ${selectedSubject.name}.`
+                    : "Select a subject to begin configuring your practice."}
+                </p>
+              </div>
+
+              <Button
+                onClick={loadQuestions}
+                disabled={!canStartSyllabus}
+                className="mt-5 h-11 w-full gap-2 bg-indigo-500 text-white shadow-lg shadow-indigo-500/15 hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Start Practice
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </aside>
+          </div>
+        ) : (
+          <section className="mt-8 rounded-2xl border border-violet-400/20 bg-violet-400/5 p-6 sm:p-8">
+            <div className="mx-auto max-w-xl text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
+                <FolderOpen className="h-6 w-6" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-foreground">Practice from your materials</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Your uploaded material will be used to build a focused MCQ session. No topic-by-topic setup is needed.
+              </p>
+
+              <div className="mx-auto mt-6 grid max-w-md grid-cols-3 gap-2 text-xs">
+                {[
+                  ["Difficulty", difficulty],
+                  ["Questions", String(count)],
+                  ["Source", "Uploads"],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-border bg-card/70 p-3">
+                    <div className="text-[10px] text-muted-foreground">{label}</div>
+                    <div className="mt-1 font-semibold capitalize text-foreground">{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mx-auto mt-5 flex max-w-md gap-2">
+                {(["easy", "medium", "hard"] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    className={`flex-1 rounded-xl border px-2 py-2 text-xs font-medium capitalize transition ${
+                      difficulty === d
+                        ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
+                        : "border-border text-muted-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                onClick={loadQuestions}
+                className="mt-5 h-11 w-full max-w-md gap-2 bg-indigo-500 text-white shadow-lg shadow-indigo-500/15 hover:bg-indigo-400"
+              >
+                Start Practice
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </section>
+        )}
       </div>
     )
   }
@@ -599,66 +747,134 @@ export default function TestPracticePage() {
 
   if (done && !reviewMode) {
     const pct = questions.length ? Math.round((correctCountRef.current / questions.length) * 100) : 0
+    const correct = correctCountRef.current
+    const wrong = Math.max(questions.length - correct - Object.values(answers).filter((a) => a === "TIMEOUT").length, 0)
+    const timedOut = Object.values(answers).filter((a) => a === "TIMEOUT").length
     const isWin = pct >= 80
-    return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center text-center animate-fade-up">
-        {isWin && <Confetti />}
-        <div className={`rounded-full p-4 ${isWin ? "bg-emerald-500/10" : "bg-amber-500/10"}`}>
-          <Trophy className={`h-10 w-10 ${isWin ? "text-emerald-400" : "text-amber-400"}`} />
-        </div>
-        <h1 className="mt-6 text-3xl font-semibold text-foreground">Test Complete!</h1>
-        <p className="mt-2 text-muted-foreground">
-          You scored {correctCountRef.current}/{questions.length} ({pct}%)
-        </p>
-        {savedForTest.length > 0 && (
-          <p className="mt-1 text-sm text-muted-foreground">
-            {savedForTest.length} question{savedForTest.length > 1 ? "s" : ""} saved for review
-          </p>
-        )}
+    const isAverage = pct >= 50 && pct < 80
 
-        <div className="mt-8 w-full max-w-sm space-y-3">
-          {showShare ? (
-            <div className="space-y-3 rounded-xl border border-border bg-card p-4 text-left">
-              <div className="text-sm font-medium text-card-foreground">Share to Forum</div>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={3}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-              <div className="flex gap-2">
-                <Button size="sm" onClick={shareToForum} disabled={sharing || !caption.trim()} className="gap-2">
-                  {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />} Post
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowShare(false)}>
-                  Cancel
-                </Button>
+    const title = isWin ? "Excellent work!" : isAverage ? "Good attempt!" : "Keep practicing!"
+    const subtitle = isWin
+      ? "You have a strong grasp of this material."
+      : isAverage
+      ? "You're getting there. A quick review can push this score higher."
+      : "Don't worry — use the review to find the gaps and try again."
+
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-start justify-center py-8 sm:py-12 animate-fade-up">
+        {isWin && <Confetti />}
+
+        <div className="w-full">
+          {/* Result header */}
+          <div className="text-center">
+            <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${
+              isWin ? "bg-indigo-500/10 text-indigo-300" : "bg-amber-500/10 text-amber-400"
+            }`}>
+              <Trophy className="h-8 w-8" />
+            </div>
+
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Test complete
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {title}
+            </h1>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {subtitle}
+            </p>
+          </div>
+
+          {/* Score card */}
+          <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+              <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-indigo-400/15">
+                <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-indigo-400 border-r-indigo-400 -rotate-45" />
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-foreground">{pct}%</div>
+                  <div className="text-[10px] font-medium text-muted-foreground">SCORE</div>
+                </div>
+              </div>
+
+              <div className="grid w-full grid-cols-3 gap-2">
+                <div className="rounded-xl border border-indigo-400/20 bg-indigo-400/5 p-3 text-center">
+                  <div className="text-xl font-bold text-indigo-300">{correct}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Correct</div>
+                </div>
+                <div className="rounded-xl border border-red-400/20 bg-red-400/5 p-3 text-center">
+                  <div className="text-xl font-bold text-red-300">{wrong}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Wrong</div>
+                </div>
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-center">
+                  <div className="text-xl font-bold text-amber-300">{timedOut}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Timed out</div>
+                </div>
               </div>
             </div>
-          ) : (
-            <Button onClick={openShare} disabled={sharing || shared} className="w-full gap-2">
-              {shared ? (
-                <>
-                  <Check className="h-4 w-4" /> Shared to Forum
-                </>
-              ) : (
-                <>
-                  <Share2 className="h-4 w-4" /> Share Result on Forum
-                </>
-              )}
-            </Button>
-          )}
 
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={restart} className="gap-2">
-              <RotateCcw className="h-4 w-4" /> Practice Again
-            </Button>
-            <Button variant="outline" onClick={() => setReviewMode(true)} className="gap-2">
-              <Eye className="h-4 w-4" /> Review Answers
-            </Button>
-            <Button variant="outline" onClick={() => router.push("/tests")}>
-              Back to Tests
-            </Button>
+            {savedForTest.length > 0 && (
+              <div className="mt-5 flex items-center justify-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground">
+                <Bookmark className="h-3.5 w-3.5 text-indigo-300" />
+                {savedForTest.length} question{savedForTest.length > 1 ? "s" : ""} saved for later review
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="mx-auto mt-5 max-w-2xl">
+            {showShare ? (
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
+                  <Share2 className="h-4 w-4 text-indigo-300" />
+                  Share your result
+                </div>
+                <textarea
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  rows={3}
+                  placeholder="Add a short message..."
+                  className="mt-3 w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setShowShare(false)}>Cancel</Button>
+                  <Button size="sm" onClick={shareToForum} disabled={sharing || !caption.trim()} className="gap-2 bg-indigo-500 text-white hover:bg-indigo-400">
+                    {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                    Post result
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button
+                  onClick={() => setReviewMode(true)}
+                  className="h-11 gap-2 bg-indigo-500 text-white shadow-md shadow-indigo-500/15 hover:bg-indigo-400"
+                >
+                  <Eye className="h-4 w-4" />
+                  Review answers
+                </Button>
+                <Button onClick={restart} variant="outline" className="h-11 gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Practice again
+                </Button>
+                <Button
+                  onClick={openShare}
+                  disabled={sharing || shared}
+                  variant="outline"
+                  className="h-11 gap-2"
+                >
+                  {shared ? <Check className="h-4 w-4 text-indigo-300" /> : <Share2 className="h-4 w-4" />}
+                  {shared ? "Shared" : "Share result"}
+                </Button>
+              </div>
+            )}
+
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => router.push("/tests")}
+                className="text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                Back to all tests →
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -667,24 +883,24 @@ export default function TestPracticePage() {
 
   if (reviewMode) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+      <div className="mx-auto max-w-3xl space-y-5 animate-fade-up">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Review Answers</h2>
           <Button variant="outline" size="sm" onClick={() => setReviewMode(false)} className="gap-2">
             <X className="h-4 w-4" /> Close
           </Button>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {questions.map((qItem, i) => {
             const userAns = answers[i]
             const correct = userAns === qItem.answer
-            const timedOut = userAns === "__timeout__"
+            const timedOut = userAns === "TIMEOUT"
             return (
               <div
                 key={i}
-                className={`rounded-xl border p-4 ${
+                className={`rounded-xl border p-3.5 ${
                   correct
-                    ? "border-emerald-400/30 bg-emerald-400/5"
+                    ? "border-indigo-400/30 bg-indigo-400/5"
                     : timedOut
                     ? "border-amber-400/30 bg-amber-400/5"
                     : "border-red-400/30 bg-red-400/5"
@@ -697,7 +913,7 @@ export default function TestPracticePage() {
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                       correct
-                        ? "bg-emerald-400/10 text-emerald-400"
+                        ? "bg-indigo-400/10 text-indigo-300"
                         : timedOut
                         ? "bg-amber-400/10 text-amber-400"
                         : "bg-red-400/10 text-red-400"
@@ -711,7 +927,7 @@ export default function TestPracticePage() {
                     const isUser = userAns === opt
                     const isAns = opt === qItem.answer
                     let cls = "text-muted-foreground"
-                    if (isAns) cls = "font-medium text-emerald-400"
+                    if (isAns) cls = "font-medium text-indigo-300"
                     else if (isUser && !isAns) cls = "font-medium text-red-400 line-through"
                     return (
                       <div key={j} className={`text-sm ${cls}`}>
@@ -747,7 +963,7 @@ export default function TestPracticePage() {
   const isFlagged = flagged.has(index)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
+    <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
       {/* Top Bar */}
       <div className="flex items-center gap-4">
         <button onClick={() => router.push("/tests")} className="text-muted-foreground transition hover:text-foreground">
@@ -794,11 +1010,18 @@ export default function TestPracticePage() {
       </div>
 
       {/* Question */}
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-xs font-bold text-indigo-400">
-          {index + 1}
-        </span>
-        <h1 className="text-lg font-semibold leading-relaxed text-foreground sm:text-xl">{q.question}</h1>
+      <div className="rounded-2xl border border-border bg-card/60 p-4 shadow-sm sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-300">
+            Question {index + 1}
+          </span>
+          <span className="rounded-full border border-border bg-background/60 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+            {index + 1} of {questions.length}
+          </span>
+        </div>
+        <h1 className="text-lg font-semibold leading-snug tracking-[-0.01em] text-foreground sm:text-xl">
+          {q.question}
+        </h1>
       </div>
 
       {/* Options */}
@@ -807,7 +1030,7 @@ export default function TestPracticePage() {
           const isPick = picked === opt
           const isAns = opt === q.answer
           let cls = "border-border bg-card text-foreground hover:border-indigo-400/40 hover:bg-indigo-400/5 hover:shadow-sm hover:shadow-indigo-500/5"
-          if (answered && isAns) cls = "border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+          if (answered && isAns) cls = "border-indigo-400 bg-indigo-400/10 text-indigo-200 shadow-[0_0_20px_rgba(99,102,241,0.15)]"
           else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500/10 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
           else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
@@ -815,11 +1038,11 @@ export default function TestPracticePage() {
               key={j}
               onClick={() => pick(opt)}
               disabled={answered}
-              className={`group flex w-full items-center gap-3 rounded-xl border px-5 py-3.5 text-left text-sm transition active:scale-[0.98] ${cls} disabled:cursor-not-allowed`}
+              className={`group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm transition-all duration-150 active:scale-[0.995] ${cls} disabled:cursor-not-allowed sm:px-4 sm:py-3.5`}
             >
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition ${
+              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition ${
                 answered && isAns
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-indigo-500 text-white"
                   : answered && isPick && !isAns
                   ? "bg-red-500 text-white"
                   : answered
@@ -829,7 +1052,7 @@ export default function TestPracticePage() {
                 {String.fromCharCode(65 + j)}
               </span>
               <span className="flex-1">{opt}</span>
-              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />}
+              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-indigo-300" />}
               {answered && isPick && !isAns && <XCircle className="h-5 w-5 shrink-0 text-red-400" />}
             </button>
           )
@@ -855,38 +1078,49 @@ export default function TestPracticePage() {
       {/* Feedback */}
       {answered && (
         <div
-          className={`rounded-xl border p-4 ${
+          className={`overflow-hidden rounded-2xl border ${
             isCorrect
-              ? "animate-bounce-in border-emerald-500/30 bg-emerald-500/5"
-              : "animate-shake border-red-500/30 bg-red-500/5"
+              ? "animate-bounce-in border-indigo-400/30 bg-indigo-400/5"
+              : "animate-shake border-red-400/30 bg-red-400/5"
           }`}
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
             <div className="flex items-center gap-3">
-              {isCorrect ? (
-                <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-400" />
-              ) : (
-                <XCircle className="h-6 w-6 shrink-0 text-red-400" />
-              )}
-              <span className={`font-medium ${isCorrect ? "text-emerald-400" : "text-red-400"}`}>
-                {isCorrect ? "Correct!" : picked === "__timeout__" ? "Time's up!" : "Wrong!"}
-              </span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                isCorrect ? "bg-indigo-400/10 text-indigo-300" : "bg-red-400/10 text-red-300"
+              }`}>
+                {isCorrect ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+              </div>
+              <div>
+                <div className={`font-semibold ${isCorrect ? "text-indigo-200" : "text-red-200"}`}>
+                  {isCorrect ? "Correct answer" : picked === "TIMEOUT" ? "Time's up" : "Not quite"}
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {isCorrect ? "Nice work. Keep the momentum going." : "Review the explanation before moving on."}
+                </div>
+              </div>
             </div>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowExpl(!showExpl)}
-                className="flex items-center gap-1 text-xs text-muted-foreground transition hover:text-foreground"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
               >
                 Explanation
                 <ChevronDown className={`h-4 w-4 transition-transform ${showExpl ? "rotate-180" : ""}`} />
               </button>
-              <Button onClick={next} className="gap-2 bg-indigo-400 text-black hover:bg-indigo-300">
-                {index + 1 >= questions.length ? "Finish" : "Next"} <ArrowRight className="h-4 w-4" />
+              <Button onClick={next} className="gap-2 bg-indigo-500 text-white shadow-md shadow-indigo-500/15 hover:bg-indigo-400">
+                {index + 1 >= questions.length ? "Finish" : "Next"}
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
+
           {showExpl && (
-            <div className="mt-3 border-t border-border pt-3 text-sm leading-relaxed text-muted-foreground">
+            <div className="border-t border-border/70 bg-background/30 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground sm:px-4 sm:py-3.5">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-foreground">
+                Why this is the answer
+              </span>
               {q.explanation}
             </div>
           )}

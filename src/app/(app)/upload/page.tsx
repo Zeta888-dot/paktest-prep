@@ -13,6 +13,9 @@ import {
   FolderOpen,
   ChevronDown,
   Trash2,
+  File,
+  Sparkles,
+  MoreHorizontal,
 } from "lucide-react"
 
 type Doc = {
@@ -46,14 +49,23 @@ const testNames = [
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return "0 B"
+
   const k = 1024
   const sizes = ["B", "KB", "MB", "GB"]
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
+
+  return (
+    parseFloat((bytes / Math.pow(k, i)).toFixed(1)) +
+    " " +
+    sizes[i]
+  )
 }
 
 function timeAgo(date: string) {
-  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  const seconds = Math.floor(
+    (Date.now() - new Date(date).getTime()) / 1000
+  )
+
   const intervals = [
     { label: "year", seconds: 31536000 },
     { label: "month", seconds: 2592000 },
@@ -62,29 +74,72 @@ function timeAgo(date: string) {
     { label: "hour", seconds: 3600 },
     { label: "minute", seconds: 60 },
   ]
+
   for (const interval of intervals) {
     const count = Math.floor(seconds / interval.seconds)
-    if (count >= 1) return `${count} ${interval.label}${count > 1 ? "s" : ""} ago`
+
+    if (count >= 1) {
+      return `${count} ${interval.label}${count > 1 ? "s" : ""} ago`
+    }
   }
+
   return "Just now"
 }
 
 function fileIcon(type: string) {
-  if (type.startsWith("image/")) return <ImageIcon className="h-8 w-8 text-purple-400" />
-  return <FileText className="h-8 w-8 text-blue-400" />
+  if (type.startsWith("image/")) {
+    return (
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-400">
+        <ImageIcon className="h-4 w-4" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-400/10 text-indigo-400">
+      <FileText className="h-4 w-4" />
+    </div>
+  )
+}
+
+function documentIcon(name: string) {
+  const ext = name.split(".").pop()?.toLowerCase()
+
+  if (
+    ext === "png" ||
+    ext === "jpg" ||
+    ext === "jpeg" ||
+    ext === "webp"
+  ) {
+    return (
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-400">
+        <ImageIcon className="h-4 w-4" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-400/10 text-indigo-400">
+      <File className="h-4 w-4" />
+    </div>
+  )
 }
 
 export default function UploadPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+
   const [file, setFile] = useState<File | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
+
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+
   const [docs, setDocs] = useState<Doc[]>([])
   const [testName, setTestName] = useState("MDCAT")
+
   const [expanded, setExpanded] = useState<string | null>(null)
   const [docChunks, setDocChunks] = useState<Record<string, Chunk[]>>({})
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -102,29 +157,48 @@ export default function UploadPage() {
 
   const handleFile = useCallback((f: File | null) => {
     if (!f) return
-    const allowed = [".pdf", ".png", ".jpg", ".jpeg", ".webp"]
-    const ext = "." + f.name.split(".").pop()?.toLowerCase()
+
+    const allowed = [
+      ".pdf",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".webp",
+    ]
+
+    const ext =
+      "." + f.name.split(".").pop()?.toLowerCase()
+
     if (!allowed.includes(ext)) {
-      setError("Only PDF, PNG, JPG, JPEG, or WEBP files allowed.")
+      setError(
+        "Only PDF, PNG, JPG, JPEG, or WEBP files are allowed."
+      )
       return
     }
+
     if (f.size > 10 * 1024 * 1024) {
       setError("File size must be under 10MB.")
       return
     }
+
     setFile(f)
     setError("")
     setMessage("")
+    setProgress(0)
   }, [])
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault()
     setDragOver(false)
-    handleFile(e.dataTransfer.files?.[0] ?? null)
+
+    handleFile(
+      e.dataTransfer.files?.[0] ?? null
+    )
   }
 
   async function handleUpload() {
     if (!file) return
+
     setUploading(true)
     setProgress(0)
     setError("")
@@ -136,15 +210,18 @@ export default function UploadPage() {
           clearInterval(interval)
           return 90
         }
+
         return p + Math.random() * 15
       })
     }, 300)
 
     const form = new FormData()
+
     form.append("file", file)
     form.append("testName", testName)
 
     const controller = new AbortController()
+
     abortRef.current = controller
 
     try {
@@ -153,21 +230,40 @@ export default function UploadPage() {
         body: form,
         signal: controller.signal,
       })
+
       clearInterval(interval)
       setProgress(100)
+
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Upload failed")
-      setMessage(data.message || "Upload successful!")
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || "Upload failed"
+        )
+      }
+
+      setMessage(
+        data.message || "Upload successful!"
+      )
+
       setFile(null)
+
       loadDocs()
-      if (inputRef.current) inputRef.current.value = ""
+
+      if (inputRef.current) {
+        inputRef.current.value = ""
+      }
     } catch (err: any) {
       clearInterval(interval)
       setProgress(0)
+
       if (err?.name === "AbortError") {
         setError("Upload cancelled.")
       } else {
-        setError(err.message || "Upload failed. Please try again.")
+        setError(
+          err.message ||
+            "Upload failed. Please try again."
+        )
       }
     } finally {
       setUploading(false)
@@ -184,7 +280,10 @@ export default function UploadPage() {
     setError("")
     setMessage("")
     setProgress(0)
-    if (inputRef.current) inputRef.current.value = ""
+
+    if (inputRef.current) {
+      inputRef.current.value = ""
+    }
   }
 
   function toggleExpand(id: string) {
@@ -192,47 +291,99 @@ export default function UploadPage() {
       setExpanded(null)
       return
     }
+
     setExpanded(id)
+
     if (!docChunks[id]) {
       fetch(`/api/chunks?docId=${id}`)
         .then((r) => r.json())
-        .then((d) => setDocChunks((prev) => ({ ...prev, [id]: d.chunks ?? [] })))
+        .then((d) =>
+          setDocChunks((prev) => ({
+            ...prev,
+            [id]: d.chunks ?? [],
+          }))
+        )
         .catch(() => {})
     }
   }
 
   async function deleteDoc(id: string) {
     try {
-      await fetch(`/api/documents?id=${id}`, { method: "DELETE" })
-      setDocs((prev) => prev.filter((d) => d.id !== id))
-      if (expanded === id) setExpanded(null)
+      await fetch(
+        `/api/documents?id=${id}`,
+        {
+          method: "DELETE",
+        }
+      )
+
+      setDocs((prev) =>
+        prev.filter((d) => d.id !== id)
+      )
+
+      if (expanded === id) {
+        setExpanded(null)
+      }
     } catch {
-      // ignore
+      // Ignore delete errors.
     }
+
     setConfirmDelete(null)
   }
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Upload Material</h1>
-        <p className="mt-2 text-muted-foreground">PDF ya image upload karo, AI us se MCQs banayega.</p>
+    <div className="mx-auto w-full max-w-4xl space-y-7 pb-10 animate-fade-up">
+
+      {/* HEADER */}
+
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-indigo-400" />
+
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+              Upload Material
+            </h1>
+          </div>
+
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Add study material and let AI turn it into practice questions.
+          </p>
+        </div>
       </div>
 
-      <label className="block max-w-xs text-sm text-muted-foreground">
-        Material kis test ke liye hai?
-        <select
-          value={testName}
-          onChange={(e) => setTestName(e.target.value)}
-          className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-        >
-          {testNames.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* PREPARATION TARGET */}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-medium text-foreground">
+            Preparation target
+          </p>
+
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Choose the test this material belongs to.
+          </p>
+        </div>
+
+        <div className="relative w-full sm:w-80">
+          <select
+            value={testName}
+            onChange={(e) =>
+              setTestName(e.target.value)
+            }
+            className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2.5 pr-9 text-sm text-foreground outline-none transition hover:border-foreground/20 focus:border-primary focus:ring-2 focus:ring-primary/10"
+          >
+            {testNames.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+      </div>
+
+      {/* UPLOAD AREA */}
 
       <div
         onDragOver={(e) => {
@@ -241,168 +392,470 @@ export default function UploadPage() {
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onClick={() => !file && inputRef.current?.click()}
-        className={`relative cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition ${
-          dragOver
-            ? "border-primary bg-primary/5"
-            : "border-border bg-card hover:border-border/80 hover:bg-accent/50"
-        }`}
+        onClick={() =>
+          !file &&
+          !uploading &&
+          inputRef.current?.click()
+        }
+        className={`
+          group relative overflow-hidden rounded-2xl border
+          px-5 py-10 text-center
+          transition-all duration-200
+          sm:px-8 sm:py-12
+          ${
+            dragOver
+              ? "cursor-copy border-primary bg-primary/5 shadow-[0_0_0_4px_hsl(var(--primary)/0.06)]"
+              : file
+                ? "border-border bg-card"
+                : "cursor-pointer border-dashed border-border bg-card/50 hover:border-foreground/20 hover:bg-card"
+          }
+        `}
       >
         <input
           ref={inputRef}
           type="file"
           accept=".pdf,.png,.jpg,.jpeg,.webp"
-          onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+          onChange={(e) =>
+            handleFile(
+              e.target.files?.[0] ?? null
+            )
+          }
           className="hidden"
         />
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-          <Upload className="h-6 w-6 text-primary" />
-        </div>
-        <p className="mt-3 text-sm font-medium text-card-foreground">
-          {dragOver ? "Drop file here" : "Click or drag & drop to upload"}
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">PDF, PNG, JPG, JPEG, WEBP · Max 10MB</p>
-      </div>
 
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          {error}
-        </div>
-      )}
-
-      {message && (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-400">
-          <CheckCircle2 className="h-5 w-5 shrink-0" />
-          {message}
-        </div>
-      )}
-
-      {file && (
-        <div className="space-y-4 rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center gap-4">
-            {fileIcon(file.type)}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-card-foreground">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
-            </div>
-            <button
-              onClick={clearFile}
-              disabled={uploading}
-              className="rounded-lg p-2 text-muted-foreground transition hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+        {!file ? (
+          <>
+            <div
+              className={`
+                mx-auto flex h-12 w-12 items-center justify-center
+                rounded-xl border border-border bg-background
+                transition-all duration-200
+                ${
+                  dragOver
+                    ? "scale-110 border-primary/30 bg-primary/10"
+                    : "group-hover:-translate-y-0.5 group-hover:border-primary/20 group-hover:bg-primary/5"
+                }
+              `}
             >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Processing...
-                </span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-300"
-                  style={{ width: `${Math.min(progress, 100)}%` }}
-                />
-              </div>
-              <Button variant="outline" onClick={cancelUpload} className="w-full gap-2">
-                <X className="h-4 w-4" /> Cancel Upload
-              </Button>
+              <Upload
+                className={`
+                  h-5 w-5 transition-all
+                  ${
+                    dragOver
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-primary"
+                  }
+                `}
+              />
             </div>
-          )}
 
-          {!uploading && (
-            <Button onClick={handleUpload} className="w-full gap-2">
-              <Upload className="h-4 w-4" /> Upload & Process
-            </Button>
-          )}
-        </div>
-      )}
+            <p className="mt-4 text-sm font-medium text-foreground">
+              {dragOver
+                ? "Drop your material here"
+                : "Upload study material"}
+            </p>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <FolderOpen className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-medium text-foreground">Your Documents</h2>
-        </div>
-        {docs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No documents uploaded yet.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Drag & drop or click to browse
+            </p>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+              {[
+                "PDF",
+                "PNG",
+                "JPG",
+                "JPEG",
+                "WEBP",
+              ].map((type) => (
+                <span
+                  key={type}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground"
+                >
+                  {type}
+                </span>
+              ))}
+
+              <span className="px-1 py-1 text-[10px] text-muted-foreground">
+                Max 10MB
+              </span>
+            </div>
+          </>
         ) : (
-          <div className="space-y-2">
-            {docs.map((d) => (
-              <div key={d.id} className="rounded-xl border border-border bg-card">
-                <div className="flex items-center justify-between gap-2 px-5 py-3 text-sm">
-                  <button
-                    onClick={() => toggleExpand(d.id)}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                  >
-                    <ChevronDown
-                      className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                        expanded === d.id ? "rotate-180" : ""
-                      }`}
+          <div
+            className="mx-auto flex max-w-2xl items-center gap-3 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {fileIcon(file.type)}
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {file.name}
+              </p>
+
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {formatBytes(file.size)} · {testName}
+              </p>
+
+              {uploading && (
+                <div className="mt-2">
+                  <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Processing material...
+                    </span>
+
+                    <span>
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+
+                  <div className="h-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{
+                        width: `${Math.min(
+                          progress,
+                          100
+                        )}%`,
+                      }}
                     />
-                    <FileText className="h-4 w-4 shrink-0 text-blue-400" />
-                    <span className="truncate font-medium text-card-foreground">{d.name}</span>
-                  </button>
-                  <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                    {d.testName && (
-                      <span className="hidden rounded-full border border-border bg-muted px-2 py-0.5 sm:inline">
-                        {d.testName}
-                      </span>
-                    )}
-                    {d.pageCount !== null && <span>{d.pageCount}p</span>}
-                    <span className="hidden sm:inline">{timeAgo(d.createdAt)}</span>
-                    {confirmDelete === d.id ? (
-                      <span className="flex items-center gap-1">
-                        <button
-                          onClick={() => deleteDoc(d.id)}
-                          className="rounded bg-destructive px-2 py-1 font-medium text-white"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(null)}
-                          className="rounded border border-border px-2 py-1"
-                        >
-                          No
-                        </button>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setConfirmDelete(d.id)}
-                        className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                        title="Delete document"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
-                {expanded === d.id && (
-                  <div className="space-y-2 border-t border-border px-5 py-3">
-                    {!docChunks[d.id] ? (
-                      <p className="text-xs text-muted-foreground">Loading chunks...</p>
-                    ) : (
-                      <>
-                        <p className="text-xs text-muted-foreground">
-                          {docChunks[d.id].length} chunks extracted
+              )}
+            </div>
+
+            {!uploading ? (
+              <button
+                onClick={clearFile}
+                className="rounded-lg p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground"
+                title="Remove file"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={cancelUpload}
+                className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* UPLOAD BUTTON */}
+
+      {file && !uploading && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleUpload}
+            className="h-9 gap-2 rounded-lg px-4 text-sm"
+          >
+            <Upload className="h-4 w-4" />
+            Upload & Process
+          </Button>
+        </div>
+      )}
+
+      {/* STATUS */}
+
+      {(error || message) && (
+        <div
+          className={`
+            flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-xs
+            ${
+              error
+                ? "border-destructive/20 bg-destructive/5 text-destructive"
+                : "border-indigo-400/20 bg-indigo-400/5 text-indigo-400"
+            }
+          `}
+        >
+          {error ? (
+            <AlertCircle className="h-4 w-4 shrink-0" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+          )}
+
+          <span>{error || message}</span>
+        </div>
+      )}
+
+      {/* DOCUMENTS */}
+
+      <section className="pt-2">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted">
+              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <h2 className="text-sm font-medium text-foreground">
+                Your Documents
+              </h2>
+
+              <p className="text-[11px] text-muted-foreground">
+                {docs.length}{" "}
+                {docs.length === 1
+                  ? "document"
+                  : "documents"}
+              </p>
+            </div>
+          </div>
+
+          {docs.length > 0 && (
+            <span className="hidden text-[11px] text-muted-foreground sm:block">
+              Click a file to inspect extracted content
+            </span>
+          )}
+        </div>
+
+        {docs.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-5 py-10 text-center">
+            <FolderOpen className="mx-auto h-5 w-5 text-muted-foreground/60" />
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              No documents uploaded yet.
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              Your processed study material will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border bg-card/50">
+            {docs.map((d, index) => {
+              const isExpanded = expanded === d.id
+
+              return (
+                <div
+                  key={d.id}
+                  className={`
+                    group transition-colors
+                    ${
+                      index !== docs.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }
+                    ${
+                      isExpanded
+                        ? "bg-accent/30"
+                        : "hover:bg-accent/40"
+                    }
+                  `}
+                >
+                  {/* DOCUMENT ROW */}
+
+                  <div className="flex min-w-0 items-center gap-2 px-3 py-2.5 sm:px-4">
+                    <button
+                      onClick={() =>
+                        toggleExpand(d.id)
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <ChevronDown
+                        className={`
+                          h-3.5 w-3.5 shrink-0
+                          text-muted-foreground
+                          transition-transform duration-200
+                          ${
+                            isExpanded
+                              ? "rotate-180"
+                              : ""
+                          }
+                        `}
+                      />
+
+                      {documentIcon(d.name)}
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {d.name}
                         </p>
-                        {docChunks[d.id].slice(0, 5).map((c, i) => (
-                          <div key={c.id} className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground">Chunk {i + 1}:</span>{" "}
-                            {c.content.slice(0, 200)}
-                            {c.content.length > 200 ? "..." : ""}
-                          </div>
-                        ))}
-                      </>
-                    )}
+
+                        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                          {d.testName && (
+                            <>
+                              <span className="max-w-[180px] truncate sm:max-w-none">
+                                {d.testName}
+                              </span>
+
+                              <span>·</span>
+                            </>
+                          )}
+
+                          {d.pageCount !== null && (
+                            <>
+                              <span>
+                                {d.pageCount} pages
+                              </span>
+
+                              <span>·</span>
+                            </>
+                          )}
+
+                          <span className="shrink-0">
+                            {timeAgo(
+                              d.createdAt
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* ACTIONS */}
+
+                    <div className="flex shrink-0 items-center">
+                      {confirmDelete === d.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() =>
+                              deleteDoc(d.id)
+                            }
+                            className="rounded-md bg-destructive px-2 py-1 text-[10px] font-medium text-white transition hover:opacity-90"
+                          >
+                            Delete
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              setConfirmDelete(null)
+                            }
+                            className="rounded-md border border-border px-2 py-1 text-[10px] text-muted-foreground transition hover:bg-accent"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            className="hidden rounded-md p-1.5 text-muted-foreground transition hover:bg-accent sm:block"
+                            title="More options"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              setConfirmDelete(
+                                d.id
+                              )
+                            }
+                            className="rounded-md p-1.5 text-muted-foreground opacity-60 transition hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
+                            title="Delete document"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* EXPANDED CONTENT */}
+
+                  <div
+                    className={`
+                      grid transition-all duration-200
+                      ${
+                        isExpanded
+                          ? "grid-rows-[1fr]"
+                          : "grid-rows-[0fr]"
+                      }
+                    `}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="border-t border-border px-4 py-3 pl-11">
+                        {!docChunks[d.id] ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Loading extracted content...
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Extracted chunks
+                              </span>
+
+                              <span className="text-[10px] text-muted-foreground">
+                                {
+                                  docChunks[
+                                    d.id
+                                  ].length
+                                }{" "}
+                                chunks
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {docChunks[
+                                d.id
+                              ]
+                                .slice(0, 5)
+                                .map(
+                                  (
+                                    c,
+                                    i
+                                  ) => (
+                                    <div
+                                      key={
+                                        c.id
+                                      }
+                                      className="rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
+                                    >
+                                      <div className="mb-0.5 flex items-center gap-2">
+                                        <span className="font-medium text-foreground">
+                                          Chunk{" "}
+                                          {i +
+                                            1}
+                                        </span>
+
+                                        {c.pageNumber !==
+                                          null && (
+                                          <span className="text-[10px] text-muted-foreground">
+                                            Page{" "}
+                                            {
+                                              c.pageNumber
+                                            }
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <p>
+                                        {c.content.slice(
+                                          0,
+                                          250
+                                        )}
+
+                                        {c
+                                          .content
+                                          .length >
+                                          250
+                                          ? "..."
+                                          : ""}
+                                      </p>
+                                    </div>
+                                  )
+                                )}
+                            </div>
+
+                            {docChunks[
+                              d.id
+                            ].length >
+                              5 && (
+                              <p className="mt-2 text-[10px] text-muted-foreground">
+                                Showing first 5 chunks.
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </section>
