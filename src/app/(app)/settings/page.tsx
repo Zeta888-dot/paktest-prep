@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { CustomSelect } from "@/components/ui/custom-select"
 import { loadSettings, saveSettings, type Settings } from "@/lib/settings"
 import {
   User,
@@ -15,64 +16,26 @@ import {
   FileX,
   Check,
   Loader2,
-  ChevronDown,
+  Palette,
+  Database,
+  BookOpen,
+  FolderOpen,
 } from "lucide-react"
 
 type Theme = "dark" | "light" | "system"
 
-function CustomSelect<T extends string | number>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T
-  onChange: (v: T) => void
-  options: { value: T; label: string }[]
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const selected = options.find((o) => o.value === value)
+const questionOptions = [
+  { value: 5, label: "5 questions", icon: BookOpen },
+  { value: 10, label: "10 questions", icon: BookOpen },
+  { value: 15, label: "15 questions", icon: BookOpen },
+  { value: 20, label: "20 questions", icon: BookOpen },
+  { value: 25, label: "25 questions", icon: BookOpen },
+]
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground transition hover:border-foreground/20 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
-      >
-        <span>{selected?.label}</span>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 origin-top rounded-lg border border-border bg-card shadow-xl animate-bounce-in">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onChange(opt.value)
-                setOpen(false)
-              }}
-              className={`w-full px-3 py-2.5 text-left text-sm transition hover:bg-accent first:rounded-t-lg last:rounded-b-lg ${
-                opt.value === value ? "bg-indigo-500 text-white" : "text-foreground"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+const sourceOptions = [
+  { value: "syllabus", label: "From Syllabus", icon: BookOpen },
+  { value: "material", label: "From My Material", icon: FolderOpen },
+]
 
 export default function SettingsPage() {
   const [form, setForm] = useState<Settings>({
@@ -146,23 +109,26 @@ export default function SettingsPage() {
     alert("All material deleted.")
   }
 
-  const themeOptions: { value: Theme; label: string; icon: React.ElementType }[] = [
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "light", label: "Light", icon: Sun },
-    { value: "system", label: "System", icon: Monitor },
+  const themeOptions = [
+    { value: "dark" as Theme, label: "Dark", icon: Moon },
+    { value: "light" as Theme, label: "Light", icon: Sun },
+    { value: "system" as Theme, label: "System", icon: Monitor },
   ]
 
   return (
-    <div className="max-w-xl space-y-8 animate-fade-up">
+    <div className="mx-auto max-w-xl space-y-6 pb-10">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-        <p className="mt-1 text-muted-foreground">Manage your profile and practice preferences.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Manage your profile and practice preferences.</p>
       </div>
 
-      <section className="space-y-4 rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-medium text-card-foreground">Profile</h2>
+      {/* Profile */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-card-foreground">Profile</h2>
         </div>
         <label className="block text-sm text-muted-foreground">
           Display name
@@ -170,51 +136,50 @@ export default function SettingsPage() {
             value={form.displayName}
             onChange={(e) => setForm({ ...form, displayName: e.target.value })}
             placeholder="e.g. Zahi"
-            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+            className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20"
           />
         </label>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-medium text-card-foreground">Practice Preferences</h2>
+      {/* Practice Preferences */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <SlidersHorizontal className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-card-foreground">Practice Preferences</h2>
         </div>
-        <label className="block text-sm text-muted-foreground">
-          Questions per test
-          <div className="mt-1.5">
-            <CustomSelect
-              value={form.questionsPerTest}
-              onChange={(v) => setForm({ ...form, questionsPerTest: v })}
-              options={[
-                { value: 5, label: "5" },
-                { value: 10, label: "10" },
-                { value: 15, label: "15" },
-                { value: 20, label: "20" },
-                { value: 25, label: "25" },
-              ]}
-            />
-          </div>
-        </label>
-        <label className="block text-sm text-muted-foreground">
-          Default question source
-          <div className="mt-1.5">
-            <CustomSelect
-              value={form.defaultSource}
-              onChange={(v) => setForm({ ...form, defaultSource: v as "syllabus" | "material" })}
-              options={[
-                { value: "syllabus", label: "From Syllabus" },
-                { value: "material", label: "From My Material" },
-              ]}
-            />
-          </div>
-        </label>
+        <div className="space-y-4">
+          <label className="block text-sm text-muted-foreground">
+            Questions per test
+            <div className="mt-1.5">
+              <CustomSelect
+                value={form.questionsPerTest}
+                onChange={(v) => setForm({ ...form, questionsPerTest: v })}
+                options={questionOptions}
+              />
+            </div>
+          </label>
+          <label className="block text-sm text-muted-foreground">
+            Default question source
+            <div className="mt-1.5">
+              <CustomSelect
+                value={form.defaultSource}
+                onChange={(v) => setForm({ ...form, defaultSource: v as "syllabus" | "material" })}
+                options={sourceOptions}
+              />
+            </div>
+          </label>
+        </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2">
-          <Moon className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-medium text-card-foreground">Appearance</h2>
+      {/* Appearance */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <Palette className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-card-foreground">Appearance</h2>
         </div>
         <div className="flex gap-2">
           {themeOptions.map((opt) => {
@@ -225,8 +190,8 @@ export default function SettingsPage() {
                 onClick={() => setThemeValue(opt.value)}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${
                   active
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
                 }`}
               >
                 <opt.icon className="h-4 w-4" />
@@ -237,36 +202,40 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2">
-          <Download className="h-4 w-4 text-muted-foreground" />
-          <h2 className="font-medium text-card-foreground">Data</h2>
+      {/* Data */}
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <Database className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-sm font-semibold text-card-foreground">Data</h2>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            disabled={exporting}
-            className="gap-2"
-          >
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Export History
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting}
+          className="gap-2"
+        >
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Export History
+        </Button>
       </section>
 
-      <Button onClick={handleSave} className="gap-2">
+      <Button onClick={handleSave} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
         {saved ? <Check className="h-4 w-4" /> : null}
         {saved ? "Saved!" : "Save Changes"}
       </Button>
 
-      <section className="space-y-4 rounded-xl border border-destructive/30 bg-card p-6">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          <h2 className="font-medium text-destructive">Danger Zone</h2>
+      {/* Danger Zone */}
+      <section className="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-red-500/10">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </div>
+          <h2 className="text-sm font-semibold text-red-500">Danger Zone</h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-card-foreground">Delete All Material</p>
@@ -274,7 +243,7 @@ export default function SettingsPage() {
             </div>
             <Button
               variant="outline"
-              className="gap-2 border-destructive text-destructive hover:bg-destructive/10"
+              className="gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-500"
               onClick={handleClear}
               disabled={clearing}
             >
@@ -283,7 +252,7 @@ export default function SettingsPage() {
             </Button>
           </div>
 
-          <div className="border-t border-border pt-3">
+          <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-card-foreground">Reset All Data</p>
@@ -291,7 +260,7 @@ export default function SettingsPage() {
               </div>
               <Button
                 variant="outline"
-                className="gap-2 border-destructive text-destructive hover:bg-destructive/10"
+                className="gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-500"
                 onClick={handleReset}
                 disabled={resetting}
               >

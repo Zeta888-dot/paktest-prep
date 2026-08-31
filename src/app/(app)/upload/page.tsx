@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { CustomSelect } from "@/components/ui/custom-select"
 import {
   Upload,
   FileText,
@@ -14,8 +15,8 @@ import {
   ChevronDown,
   Trash2,
   File,
-  Sparkles,
   MoreHorizontal,
+  BookOpen,
 } from "lucide-react"
 
 type Doc = {
@@ -32,19 +33,19 @@ type Chunk = {
   pageNumber: number | null
 }
 
-const testNames = [
-  "Police Constable (KPK / Islamabad)",
-  "Junior / Senior Clerk",
-  "Stenotypist",
-  "ASF",
-  "Air Force Commission Posts",
-  "MDCAT",
-  "ECAT",
-  "SST (Senior Subject Specialist)",
-  "CT (Certified Teacher)",
-  "PST (Primary School Teacher)",
-  "PASI (Assistant Sub Inspector)",
-  "CSS & PMS",
+const testOptions = [
+  { value: "Police Constable (KPK / Islamabad)", label: "Police Constable (KPK / Islamabad)", icon: BookOpen },
+  { value: "Junior / Senior Clerk", label: "Junior / Senior Clerk", icon: BookOpen },
+  { value: "Stenotypist", label: "Stenotypist", icon: BookOpen },
+  { value: "ASF", label: "ASF", icon: BookOpen },
+  { value: "Air Force Commission Posts", label: "Air Force Commission Posts", icon: BookOpen },
+  { value: "MDCAT", label: "MDCAT", icon: BookOpen },
+  { value: "ECAT", label: "ECAT", icon: BookOpen },
+  { value: "SST (Senior Subject Specialist)", label: "SST (Senior Subject Specialist)", icon: BookOpen },
+  { value: "CT (Certified Teacher)", label: "CT (Certified Teacher)", icon: BookOpen },
+  { value: "PST (Primary School Teacher)", label: "PST (Primary School Teacher)", icon: BookOpen },
+  { value: "PASI (Assistant Sub Inspector)", label: "PASI (Assistant Sub Inspector)", icon: BookOpen },
+  { value: "CSS & PMS", label: "CSS & PMS", icon: BookOpen },
 ]
 
 function formatBytes(bytes: number) {
@@ -75,13 +76,13 @@ function timeAgo(date: string) {
 function fileIcon(type: string) {
   if (type.startsWith("image/")) {
     return (
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500 text-white">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
         <ImageIcon className="h-4 w-4" />
       </div>
     )
   }
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
       <FileText className="h-4 w-4" />
     </div>
   )
@@ -91,59 +92,14 @@ function documentIcon(name: string) {
   const ext = name.split(".").pop()?.toLowerCase()
   if (ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "webp") {
     return (
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500 text-white">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
         <ImageIcon className="h-4 w-4" />
       </div>
     )
   }
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
       <File className="h-4 w-4" />
-    </div>
-  )
-}
-
-function CustomSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 pr-9 text-sm text-foreground transition hover:border-foreground/20 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/20"
-      >
-        <span className="truncate">{value}</span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 origin-top overflow-y-auto rounded-lg border border-border bg-card shadow-xl animate-bounce-in">
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => {
-                onChange(opt)
-                setOpen(false)
-              }}
-              className={`w-full px-3 py-2.5 text-left text-sm transition hover:bg-accent first:rounded-t-lg last:rounded-b-lg ${
-                opt === value ? "bg-indigo-500 text-white" : "text-foreground"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -283,33 +239,33 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-7 pb-10 animate-fade-up">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-indigo-400" />
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              Upload Material
-            </h1>
-          </div>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Add study material and let AI turn it into practice questions.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-4xl space-y-6 pb-10">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-semibold text-foreground">Upload Material</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Add study material and let AI turn it into practice questions.
+        </p>
       </div>
 
+      {/* Target selector */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-medium text-foreground">Preparation target</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-sm font-medium text-foreground">Preparation target</p>
+          <p className="text-xs text-muted-foreground">
             Choose the test this material belongs to.
           </p>
         </div>
         <div className="w-full sm:w-80">
-          <CustomSelect value={testName} onChange={setTestName} options={testNames} />
+          <CustomSelect
+            value={testName}
+            onChange={setTestName}
+            options={testOptions}
+          />
         </div>
       </div>
 
+      {/* Dropzone */}
       <div
         onDragOver={(e) => {
           e.preventDefault()
@@ -319,13 +275,13 @@ export default function UploadPage() {
         onDrop={handleDrop}
         onClick={() => !file && !uploading && inputRef.current?.click()}
         className={`
-          group relative overflow-hidden rounded-2xl border
-          px-5 py-10 text-center
-          transition-all duration-200
-          sm:px-8 sm:py-12
+          group relative overflow-hidden rounded-xl border
+          px-5 py-8 text-center
+          transition
+          sm:px-8 sm:py-10
           ${
             dragOver
-              ? "cursor-copy border-indigo-400 bg-indigo-400/5"
+              ? "cursor-copy border-primary bg-primary/5"
               : file
               ? "border-border bg-card"
               : "cursor-pointer border-dashed border-border bg-card/50 hover:border-foreground/20 hover:bg-card"
@@ -344,34 +300,30 @@ export default function UploadPage() {
           <>
             <div
               className={`
-                mx-auto flex h-12 w-12 items-center justify-center
-                rounded-xl border border-border bg-background
-                transition-all duration-200
-                ${
-                  dragOver
-                    ? "scale-110 border-indigo-400 bg-indigo-400/10"
-                    : "group-hover:-translate-y-0.5 group-hover:border-indigo-400 bg-indigo-400/5"
-                }
+                mx-auto flex h-11 w-11 items-center justify-center
+                rounded-lg border border-border bg-background
+                transition
+                ${dragOver ? "border-primary bg-primary/5" : "group-hover:border-primary/30"}
               `}
             >
               <Upload
                 className={`
-                  h-5 w-5 transition-all
-                  ${dragOver ? "text-indigo-400" : "text-muted-foreground group-hover:text-indigo-400"}
+                  h-5 w-5 transition
+                  ${dragOver ? "text-primary" : "text-muted-foreground group-hover:text-primary"}
                 `}
               />
             </div>
-            <p className="mt-4 text-sm font-medium text-foreground">
+            <p className="mt-3 text-sm font-medium text-foreground">
               {dragOver ? "Drop your material here" : "Upload study material"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">Drag & drop or click to browse</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-              {["PDF", "PNG", "JPG", "JPEG", "WEBP"].map((type) => (
-                <span key={type} className="rounded-md border border-border bg-background px-2 py-1 text-[10px] font-medium text-muted-foreground">
+            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              {["PDF", "PNG", "JPG", "WEBP"].map((type) => (
+                <span key={type} className="rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                   {type}
                 </span>
               ))}
-              <span className="px-1 py-1 text-[10px] text-muted-foreground">Max 10MB</span>
+              <span className="px-1 py-0.5 text-[10px] text-muted-foreground">Max 10MB</span>
             </div>
           </>
         ) : (
@@ -387,13 +339,13 @@ export default function UploadPage() {
                   <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Processing material...
+                      Processing...
                     </span>
                     <span>{Math.round(progress)}%</span>
                   </div>
-                  <div className="h-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                      className="h-full rounded-full bg-primary transition-all duration-300"
                       style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
@@ -435,8 +387,8 @@ export default function UploadPage() {
             flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-xs
             ${
               error
-                ? "border-red-500 bg-red-500/10 text-red-400"
-                : "border-indigo-500 bg-indigo-500/10 text-indigo-400"
+                ? "border-red-500/30 bg-red-500/5 text-red-500"
+                : "border-primary/30 bg-primary/5 text-primary"
             }
           `}
         >
@@ -445,22 +397,17 @@ export default function UploadPage() {
         </div>
       )}
 
-      <section className="pt-2">
+      {/* Documents list */}
+      <section>
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted">
-              <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
-            <div>
-              <h2 className="text-sm font-medium text-foreground">Your Documents</h2>
-              <p className="text-[11px] text-muted-foreground">
-                {docs.length} {docs.length === 1 ? "document" : "documents"}
-              </p>
-            </div>
+            <FolderOpen className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">Your Documents</h2>
+            <span className="text-xs text-muted-foreground">({docs.length})</span>
           </div>
           {docs.length > 0 && (
-            <span className="hidden text-[11px] text-muted-foreground sm:block">
-              Click a file to inspect extracted content
+            <span className="hidden text-xs text-muted-foreground sm:block">
+              Click to inspect content
             </span>
           )}
         </div>
@@ -474,25 +421,18 @@ export default function UploadPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card/50">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
             {docs.map((d, index) => {
               const isExpanded = expanded === d.id
               return (
                 <div
                   key={d.id}
-                  className={`
-                    group transition-colors
-                    ${index !== docs.length - 1 ? "border-b border-border" : ""}
-                    ${isExpanded ? "bg-accent/30" : "hover:bg-accent/40"}
-                  `}
+                  className={`transition-colors ${index !== docs.length - 1 ? "border-b border-border" : ""} ${isExpanded ? "bg-accent/30" : "hover:bg-accent/20"}`}
                 >
                   <div className="flex min-w-0 items-center gap-2 px-3 py-2.5 sm:px-4">
                     <button onClick={() => toggleExpand(d.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                       <ChevronDown
-                        className={`
-                          h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200
-                          ${isExpanded ? "rotate-180" : ""}
-                        `}
+                        className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`}
                       />
                       {documentIcon(d.name)}
                       <div className="min-w-0 flex-1">
@@ -520,7 +460,7 @@ export default function UploadPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => deleteDoc(d.id)}
-                            className="rounded-md bg-red-500 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-red-400"
+                            className="rounded-md bg-red-600 px-2 py-1 text-[10px] font-medium text-white transition hover:bg-red-500"
                           >
                             Delete
                           </button>
@@ -541,7 +481,7 @@ export default function UploadPage() {
                           </button>
                           <button
                             onClick={() => setConfirmDelete(d.id)}
-                            className="rounded-md p-1.5 text-muted-foreground opacity-60 transition hover:bg-red-500/10 hover:text-red-400 hover:opacity-100"
+                            className="rounded-md p-1.5 text-muted-foreground opacity-60 transition hover:bg-red-500/10 hover:text-red-500 hover:opacity-100"
                             title="Delete document"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -551,12 +491,7 @@ export default function UploadPage() {
                     </div>
                   </div>
 
-                  <div
-                    className={`
-                      grid transition-all duration-200
-                      ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}
-                    `}
-                  >
+                  <div className={`grid transition-all ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                     <div className="min-h-0 overflow-hidden">
                       <div className="border-t border-border px-4 py-3 pl-11">
                         {!docChunks[d.id] ? (

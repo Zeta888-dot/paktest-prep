@@ -62,7 +62,7 @@ function CircularTimer({ duration, onTimeout, keyReset }: { duration: number; on
 
   const pct = left / duration
   const offset = circumference * (1 - pct)
-  const color = pct > 0.5 ? "text-indigo-400" : pct > 0.2 ? "text-amber-400" : "text-red-400"
+  const color = pct > 0.5 ? "text-primary" : pct > 0.2 ? "text-amber-500" : "text-red-500"
 
   return (
     <div className="flex items-center gap-3">
@@ -70,13 +70,8 @@ function CircularTimer({ duration, onTimeout, keyReset }: { duration: number; on
         <svg viewBox="0 0 40 40" className="h-full w-full -rotate-90">
           <circle cx="20" cy="20" r={radius} fill="none" strokeWidth="3" stroke="currentColor" className="text-muted" />
           <circle
-            cx="20"
-            cy="20"
-            r={radius}
-            fill="none"
-            strokeWidth="3"
-            strokeLinecap="round"
-            stroke="currentColor"
+            cx="20" cy="20" r={radius}
+            fill="none" strokeWidth="3" strokeLinecap="round" stroke="currentColor"
             className={`${color} transition-all duration-1000`}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -122,7 +117,7 @@ function QuestionPalette({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-                    <div className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-xl border border-border bg-card p-3 shadow-xl animate-bounce-in">
+          <div className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-xl border border-border bg-card p-3 shadow-lg">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-medium text-card-foreground">Question Palette</span>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
@@ -145,7 +140,7 @@ function QuestionPalette({
                       isCurrent
                         ? "bg-primary text-primary-foreground"
                         : answered
-                        ? "bg-indigo-500 text-white"
+                        ? "bg-primary/80 text-white"
                         : "bg-muted text-muted-foreground hover:bg-accent"
                     }`}
                   >
@@ -158,7 +153,7 @@ function QuestionPalette({
               })}
             </div>
             <div className="mt-3 flex items-center gap-3 border-t border-border pt-2 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Answered</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary/80" /> Answered</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Current</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" /> Flagged</span>
             </div>
@@ -203,6 +198,10 @@ export default function TestPracticePage() {
   const [caption, setCaption] = useState("")
   const submitted = useRef(false)
   const startedAtRef = useRef<number>(0)
+
+  /* ── scroll refs ── */
+  const focusAreasRef = useRef<HTMLDivElement>(null)
+  const topicsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const s = loadSettings()
@@ -339,6 +338,7 @@ export default function TestPracticePage() {
     setDone(false)
     setReviewMode(false)
     setSelectedTopics([])
+    setSelectedSubject(null)
     setPhase("setup")
   }
 
@@ -391,13 +391,17 @@ export default function TestPracticePage() {
     } else {
       setSelectedTopics([...selectedSubject.topics])
     }
+    // scroll to topics after state update
+    setTimeout(() => {
+      topicsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 50)
   }
 
   if (loading) return <GenerationProgress />
 
   if (error) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <AlertCircle className="h-12 w-12 text-destructive" />
         <h2 className="mt-4 text-lg font-semibold text-foreground">Oops!</h2>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">{error}</p>
@@ -418,7 +422,7 @@ export default function TestPracticePage() {
     const canStartSyllabus = selectedSubject !== null && selectedTopics.length > 0
 
     return (
-      <div className="mx-auto max-w-5xl animate-fade-up pb-10">
+      <div className="mx-auto max-w-5xl pb-10">
         <div className="mb-8">
           <button
             onClick={() => router.push("/tests")}
@@ -429,7 +433,7 @@ export default function TestPracticePage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="mb-2 inline-flex items-center rounded-full bg-indigo-500 px-3 py-1 text-xs font-medium text-white">
+              <div className="mb-2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
                 Practice Studio
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -439,7 +443,7 @@ export default function TestPracticePage() {
                 Build a focused practice session. Choose your source, topics, difficulty and question count, then start.
               </p>
             </div>
-            <div className="hidden rounded-2xl border border-border bg-card/60 px-4 py-3 text-right sm:block">
+            <div className="hidden rounded-xl border border-border bg-card px-4 py-3 text-right sm:block">
               <div className="text-xs text-muted-foreground">Session</div>
               <div className="mt-1 text-sm font-semibold text-foreground">{count} questions</div>
             </div>
@@ -456,19 +460,23 @@ export default function TestPracticePage() {
             <button
               onClick={() => {
                 setSource("syllabus")
-                if (!selectedSubject && syllabus) setSelectedSubject(syllabus.subjects[0] ?? null)
+                setSelectedSubject(null)
+                setSelectedTopics([])
+                setTimeout(() => {
+                  focusAreasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }, 100)
               }}
-              className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
+              className={`group relative rounded-xl border p-5 text-left transition active:scale-[0.98] ${
                 selectedMode === "syllabus"
-                  ? "border-indigo-400/60 bg-indigo-400/10"
-                  : "border-border bg-card hover:-translate-y-0.5 hover:border-indigo-400/30 hover:bg-accent/40"
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-card hover:border-primary/30 hover:bg-accent/30"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="rounded-xl bg-indigo-500 p-2.5 text-white">
+                <span className="rounded-lg bg-primary p-2.5 text-primary-foreground">
                   <BookOpen className="h-5 w-5" />
                 </span>
-                {selectedMode === "syllabus" && <CheckCircle2 className="h-5 w-5 text-indigo-300" />}
+                {selectedMode === "syllabus" && <CheckCircle2 className="h-5 w-5 text-primary" />}
               </div>
               <div className="mt-4 font-semibold text-card-foreground">Syllabus Practice</div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -477,18 +485,22 @@ export default function TestPracticePage() {
             </button>
 
             <button
-              onClick={() => setSource("material")}
-              className={`group relative rounded-2xl border p-5 text-left transition-all duration-200 active:scale-[0.98] ${
+              onClick={() => {
+                setSource("material")
+                setSelectedSubject(null)
+                setSelectedTopics([])
+              }}
+              className={`group relative rounded-xl border p-5 text-left transition active:scale-[0.98] ${
                 selectedMode === "material"
-                  ? "border-violet-400/60 bg-violet-400/10"
-                  : "border-border bg-card hover:-translate-y-0.5 hover:border-violet-400/30 hover:bg-accent/40"
+                  ? "border-violet-500 bg-violet-500/5"
+                  : "border-border bg-card hover:border-violet-500/30 hover:bg-accent/30"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="rounded-xl bg-violet-500 p-2.5 text-white">
+                <span className="rounded-lg bg-violet-600 p-2.5 text-white">
                   <FolderOpen className="h-5 w-5" />
                 </span>
-                {selectedMode === "material" && <CheckCircle2 className="h-5 w-5 text-violet-300" />}
+                {selectedMode === "material" && <CheckCircle2 className="h-5 w-5 text-violet-500" />}
               </div>
               <div className="mt-4 font-semibold text-card-foreground">My Materials</div>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -499,9 +511,9 @@ export default function TestPracticePage() {
             {syllabus && (
               <button
                 onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/partb`)}
-                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
+                className="group rounded-xl border border-border bg-card p-5 text-left transition hover:border-foreground/20 hover:bg-accent/30 active:scale-[0.98]"
               >
-                <span className="inline-flex rounded-xl bg-sky-500 p-2.5 text-white">
+                <span className="inline-flex rounded-lg bg-sky-600 p-2.5 text-white">
                   <PenLine className="h-5 w-5" />
                 </span>
                 <div className="mt-4 font-semibold text-card-foreground">Written Practice</div>
@@ -514,9 +526,9 @@ export default function TestPracticePage() {
             {syllabus && (
               <button
                 onClick={() => router.push(`/tests/${encodeURIComponent(testName)}/mock`)}
-                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/20 hover:bg-accent/40 active:scale-[0.98]"
+                className="group rounded-xl border border-border bg-card p-5 text-left transition hover:border-foreground/20 hover:bg-accent/30 active:scale-[0.98]"
               >
-                <span className="inline-flex rounded-xl bg-amber-500 p-2.5 text-white">
+                <span className="inline-flex rounded-lg bg-amber-600 p-2.5 text-white">
                   <Timer className="h-5 w-5" />
                 </span>
                 <div className="mt-4 font-semibold text-card-foreground">Full Mock</div>
@@ -530,7 +542,7 @@ export default function TestPracticePage() {
 
         {source === "syllabus" && syllabus ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
-            <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+            <section ref={focusAreasRef} className="rounded-xl border border-border bg-card p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-card-foreground">Focus areas</h2>
@@ -539,7 +551,7 @@ export default function TestPracticePage() {
                 <button
                   onClick={selectAllTopics}
                   disabled={!selectedSubject}
-                  className="text-xs font-medium text-indigo-300 transition hover:text-indigo-200 disabled:opacity-40"
+                  className="text-xs font-medium text-primary transition hover:text-primary/80 disabled:opacity-40"
                 >
                   {selectedSubject && selectedTopics.length === selectedSubject.topics.length ? "Clear all" : "Select all"}
                 </button>
@@ -554,21 +566,24 @@ export default function TestPracticePage() {
                       onClick={() => {
                         setSelectedSubject(subj)
                         setSelectedTopics([])
+                        setTimeout(() => {
+                          topicsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }, 100)
                       }}
                       className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
                         active
-                          ? "border-indigo-400/50 bg-indigo-400/10"
-                          : "border-border bg-background/40 hover:border-foreground/15 hover:bg-accent/40"
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background hover:border-foreground/15 hover:bg-accent/30"
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className={`truncate text-sm font-medium ${active ? "text-indigo-200" : "text-card-foreground"}`}>
+                        <div className={`truncate text-sm font-medium ${active ? "text-primary" : "text-card-foreground"}`}>
                           {subj.name}
                         </div>
                         <div className="mt-1 text-[11px] text-muted-foreground">{subj.topics.length} topics</div>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                        active ? "bg-indigo-400/15 text-indigo-300" : "bg-muted text-muted-foreground"
+                        active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                       }`}>
                         {subj.weightage}
                       </span>
@@ -578,7 +593,7 @@ export default function TestPracticePage() {
               </div>
 
               {selectedSubject && (
-                <div className="mt-5 border-t border-border pt-5">
+                <div ref={topicsRef} className="mt-5 border-t border-border pt-5">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">
                       {selectedTopics.length} of {selectedSubject.topics.length} topics selected
@@ -593,12 +608,12 @@ export default function TestPracticePage() {
                           onClick={() => toggleTopic(topic)}
                           className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-xs transition active:scale-[0.99] ${
                             active
-                              ? "border-indigo-400/40 bg-indigo-400/10 text-foreground"
-                              : "border-border bg-background/30 text-muted-foreground hover:bg-accent/40"
+                              ? "border-primary bg-primary/5 text-foreground"
+                              : "border-border bg-background text-muted-foreground hover:bg-accent/30"
                           }`}
                         >
                           <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            active ? "border-indigo-400 bg-indigo-400 text-white" : "border-border"
+                            active ? "border-primary bg-primary text-primary-foreground" : "border-border"
                           }`}>
                             {active && <Check className="h-3 w-3" />}
                           </span>
@@ -611,14 +626,14 @@ export default function TestPracticePage() {
               )}
             </section>
 
-            <aside className="h-fit rounded-2xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-6">
+            <aside className="h-fit rounded-xl border border-border bg-card p-5 sm:p-6 lg:sticky lg:top-6">
               <h2 className="font-semibold text-card-foreground">Session settings</h2>
               <p className="mt-1 text-xs text-muted-foreground">Tune the challenge before you start.</p>
 
               <div className="mt-6">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">Difficulty</span>
-                  <span className="text-xs font-semibold capitalize text-indigo-300">{difficulty}</span>
+                  <span className="text-xs font-semibold capitalize text-primary">{difficulty}</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(["easy", "medium", "hard"] as const).map((d) => (
@@ -627,8 +642,8 @@ export default function TestPracticePage() {
                       onClick={() => setDifficulty(d)}
                       className={`rounded-xl border px-2 py-2.5 text-xs font-medium capitalize transition ${
                         difficulty === d
-                          ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
-                          : "border-border text-muted-foreground hover:bg-accent/50"
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border text-muted-foreground hover:bg-accent/30"
                       }`}
                     >
                       {d}
@@ -640,7 +655,7 @@ export default function TestPracticePage() {
               <div className="mt-6">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-xs font-medium text-muted-foreground">Questions</span>
-                  <span className="text-xs font-semibold text-indigo-300">{count}</span>
+                  <span className="text-xs font-semibold text-primary">{count}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {[5, 10, 15, 20].map((n) => (
@@ -649,8 +664,8 @@ export default function TestPracticePage() {
                       onClick={() => setCount(n)}
                       className={`rounded-xl border py-2.5 text-xs font-semibold transition ${
                         count === n
-                          ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
-                          : "border-border text-muted-foreground hover:bg-accent/50"
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border text-muted-foreground hover:bg-accent/30"
                       }`}
                     >
                       {n}
@@ -659,7 +674,7 @@ export default function TestPracticePage() {
                 </div>
               </div>
 
-              <div className="mt-6 rounded-xl border border-border bg-background/40 p-3.5">
+              <div className="mt-6 rounded-xl border border-border bg-background p-3.5">
                 <div className="text-xs font-medium text-foreground">
                   Ready when you are
                 </div>
@@ -673,7 +688,7 @@ export default function TestPracticePage() {
               <Button
                 onClick={loadQuestions}
                 disabled={!canStartSyllabus}
-                className="mt-5 h-11 w-full gap-2 bg-indigo-500 text-white hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-5 h-11 w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Start Practice
                 <ArrowRight className="h-4 w-4" />
@@ -681,9 +696,9 @@ export default function TestPracticePage() {
             </aside>
           </div>
         ) : (
-          <section className="mt-8 rounded-2xl border border-violet-400/20 bg-violet-400/5 p-6 sm:p-8">
+          <section className="mt-8 rounded-xl border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
             <div className="mx-auto max-w-xl text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500 text-white">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white">
                 <FolderOpen className="h-6 w-6" />
               </div>
               <h2 className="mt-4 text-lg font-semibold text-foreground">Practice from your materials</h2>
@@ -697,7 +712,7 @@ export default function TestPracticePage() {
                   ["Questions", String(count)],
                   ["Source", "Uploads"],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl border border-border bg-card/70 p-3">
+                  <div key={label} className="rounded-xl border border-border bg-card p-3">
                     <div className="text-[10px] text-muted-foreground">{label}</div>
                     <div className="mt-1 font-semibold capitalize text-foreground">{value}</div>
                   </div>
@@ -711,8 +726,8 @@ export default function TestPracticePage() {
                     onClick={() => setDifficulty(d)}
                     className={`flex-1 rounded-xl border px-2 py-2 text-xs font-medium capitalize transition ${
                       difficulty === d
-                        ? "border-indigo-400/50 bg-indigo-400/10 text-indigo-200"
-                        : "border-border text-muted-foreground hover:bg-accent/50"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground hover:bg-accent/30"
                     }`}
                   >
                     {d}
@@ -722,7 +737,7 @@ export default function TestPracticePage() {
 
               <Button
                 onClick={loadQuestions}
-                className="mt-5 h-11 w-full max-w-md gap-2 bg-indigo-500 text-white hover:bg-indigo-400"
+                className="mt-5 h-11 w-full max-w-md gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 Start Practice
                 <ArrowRight className="h-4 w-4" />
@@ -754,13 +769,13 @@ export default function TestPracticePage() {
       : "Don't worry. Use the review to find the gaps and try again."
 
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-start justify-center py-8 sm:py-12 animate-fade-up">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-start justify-center py-8 sm:py-12">
         {isWin && <Confetti />}
 
         <div className="w-full">
           <div className="text-center">
-            <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl ${
-              isWin ? "bg-indigo-500 text-white" : "bg-amber-500 text-white"
+            <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-xl ${
+              isWin ? "bg-primary text-primary-foreground" : "bg-amber-500 text-white"
             }`}>
               <Trophy className="h-8 w-8" />
             </div>
@@ -776,10 +791,10 @@ export default function TestPracticePage() {
             </p>
           </div>
 
-          <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-border bg-card p-5 sm:p-6">
+          <div className="mx-auto mt-7 max-w-2xl rounded-xl border border-border bg-card p-5 sm:p-6">
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-              <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-indigo-400/15">
-                <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-indigo-400 border-r-indigo-400 -rotate-45" />
+              <div className="relative flex h-28 w-28 shrink-0 items-center justify-center rounded-full border-[8px] border-primary/10">
+                <div className="absolute inset-0 rounded-full border-[8px] border-transparent border-t-primary border-r-primary -rotate-45" />
                 <div className="text-center">
                   <div className="text-3xl font-bold text-foreground">{pct}%</div>
                   <div className="text-[10px] font-medium text-muted-foreground">SCORE</div>
@@ -787,9 +802,9 @@ export default function TestPracticePage() {
               </div>
 
               <div className="grid w-full grid-cols-3 gap-2">
-                <div className="rounded-xl bg-indigo-500 p-3 text-center">
-                  <div className="text-xl font-bold text-white">{correct}</div>
-                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-white/80">Correct</div>
+                <div className="rounded-xl bg-primary p-3 text-center">
+                  <div className="text-xl font-bold text-primary-foreground">{correct}</div>
+                  <div className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-primary-foreground/80">Correct</div>
                 </div>
                 <div className="rounded-xl bg-red-500 p-3 text-center">
                   <div className="text-xl font-bold text-white">{wrong}</div>
@@ -804,7 +819,7 @@ export default function TestPracticePage() {
 
             {savedForTest.length > 0 && (
               <div className="mt-5 flex items-center justify-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground">
-                <Bookmark className="h-3.5 w-3.5 text-indigo-300" />
+                <Bookmark className="h-3.5 w-3.5 text-primary" />
                 {savedForTest.length} question{savedForTest.length > 1 ? "s" : ""} saved for later review
               </div>
             )}
@@ -812,9 +827,9 @@ export default function TestPracticePage() {
 
           <div className="mx-auto mt-5 max-w-2xl">
             {showShare ? (
-              <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+              <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
                 <div className="flex items-center gap-2 text-sm font-semibold text-card-foreground">
-                  <Share2 className="h-4 w-4 text-indigo-300" />
+                  <Share2 className="h-4 w-4 text-primary" />
                   Share your result
                 </div>
                 <textarea
@@ -826,7 +841,7 @@ export default function TestPracticePage() {
                 />
                 <div className="mt-3 flex justify-end gap-2">
                   <Button size="sm" variant="outline" onClick={() => setShowShare(false)}>Cancel</Button>
-                  <Button size="sm" onClick={shareToForum} disabled={sharing || !caption.trim()} className="gap-2 bg-indigo-500 text-white hover:bg-indigo-400">
+                  <Button size="sm" onClick={shareToForum} disabled={sharing || !caption.trim()} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                     {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
                     Post result
                   </Button>
@@ -836,7 +851,7 @@ export default function TestPracticePage() {
               <div className="grid gap-2 sm:grid-cols-3">
                 <Button
                   onClick={() => setReviewMode(true)}
-                  className="h-11 gap-2 bg-indigo-500 text-white hover:bg-indigo-400"
+                  className="h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Eye className="h-4 w-4" />
                   Review answers
@@ -851,7 +866,7 @@ export default function TestPracticePage() {
                   variant="outline"
                   className="h-11 gap-2"
                 >
-                  {shared ? <Check className="h-4 w-4 text-indigo-300" /> : <Share2 className="h-4 w-4" />}
+                  {shared ? <Check className="h-4 w-4 text-primary" /> : <Share2 className="h-4 w-4" />}
                   {shared ? "Shared" : "Share result"}
                 </Button>
               </div>
@@ -873,7 +888,7 @@ export default function TestPracticePage() {
 
   if (reviewMode) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5 animate-fade-up">
+      <div className="mx-auto max-w-3xl space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Review Answers</h2>
           <Button variant="outline" size="sm" onClick={() => setReviewMode(false)} className="gap-2">
@@ -893,7 +908,7 @@ export default function TestPracticePage() {
                   </span>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-white ${
-                      correct ? "bg-indigo-500" : timedOut ? "bg-amber-500" : "bg-red-500"
+                      correct ? "bg-primary" : timedOut ? "bg-amber-500" : "bg-red-500"
                     }`}
                   >
                     {correct ? "Correct" : timedOut ? "Timed Out" : "Wrong"}
@@ -904,8 +919,8 @@ export default function TestPracticePage() {
                     const isUser = userAns === opt
                     const isAns = opt === qItem.answer
                     let cls = "text-muted-foreground"
-                    if (isAns) cls = "font-medium text-indigo-400"
-                    else if (isUser && !isAns) cls = "font-medium text-red-400 line-through"
+                    if (isAns) cls = "font-medium text-primary"
+                    else if (isUser && !isAns) cls = "font-medium text-red-500 line-through"
                     return (
                       <div key={j} className={`text-sm ${cls}`}>
                         {String.fromCharCode(65 + j)}. {opt}
@@ -940,14 +955,14 @@ export default function TestPracticePage() {
   const isFlagged = flagged.has(index)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 animate-fade-up">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-4">
         <button onClick={() => router.push("/tests")} className="text-muted-foreground transition hover:text-foreground">
           <X className="h-5 w-5" />
         </button>
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-indigo-400 transition-all duration-500"
+            className="h-full rounded-full bg-primary transition-all duration-500"
             style={{ width: `${((index + (answered ? 1 : 0)) / questions.length) * 100}%` }}
           />
         </div>
@@ -984,12 +999,12 @@ export default function TestPracticePage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-300">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
             Question {index + 1}
           </span>
-          <span className="rounded-full border border-border bg-background/60 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+          <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
             {index + 1} of {questions.length}
           </span>
         </div>
@@ -1002,8 +1017,8 @@ export default function TestPracticePage() {
         {q.options.map((opt, j) => {
           const isPick = picked === opt
           const isAns = opt === q.answer
-          let cls = "border-border bg-card text-foreground hover:border-indigo-400/40"
-          if (answered && isAns) cls = "border-indigo-500 bg-indigo-500 text-white"
+          let cls = "border-border bg-card text-foreground hover:border-primary/40"
+          if (answered && isAns) cls = "border-primary bg-primary text-primary-foreground"
           else if (answered && isPick && !isAns) cls = "border-red-500 bg-red-500 text-white"
           else if (answered) cls = "border-border/40 bg-card/50 text-muted-foreground"
           return (
@@ -1018,12 +1033,12 @@ export default function TestPracticePage() {
                   ? "bg-white/20 text-white"
                   : answered
                   ? "bg-muted text-muted-foreground"
-                  : "bg-muted text-muted-foreground group-hover:bg-indigo-500 group-hover:text-white"
+                  : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground"
               }`}>
                 {String.fromCharCode(65 + j)}
               </span>
               <span className="flex-1">{opt}</span>
-              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-white" />}
+              {answered && isAns && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary-foreground" />}
               {answered && isPick && !isAns && <XCircle className="h-5 w-5 shrink-0 text-white" />}
             </button>
           )
@@ -1047,10 +1062,10 @@ export default function TestPracticePage() {
 
       {answered && (
         <div
-          className={`overflow-hidden rounded-2xl border text-white ${
+          className={`overflow-hidden rounded-xl border text-white ${
             isCorrect
-              ? "animate-bounce-in border-indigo-500 bg-indigo-500"
-              : "animate-shake border-red-500 bg-red-500"
+              ? "border-primary bg-primary"
+              : "border-red-500 bg-red-500"
           }`}
         >
           <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
