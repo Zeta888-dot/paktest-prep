@@ -10,7 +10,7 @@ import {
   BarChart3,
   ChevronRight,
   RotateCcw,
-  TrendingUp,
+  Loader2,
 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { getSyllabus } from "@/lib/syllabus"
@@ -174,6 +174,7 @@ export default function TestsPage() {
   const [attempts, setAttempts] = useState<Record<string, number>>({})
   const [progress, setProgress] = useState<Record<string, number>>({})
   const [lastAttempted, setLastAttempted] = useState<Record<string, string>>({})
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/history")
@@ -214,6 +215,11 @@ export default function TestsPage() {
   const featured = tests[0]
   const showFeatured = category === "All" && query === ""
 
+  function handleNavigate(testName: string) {
+    setNavigatingTo(testName)
+    router.push(`/tests/${encodeURIComponent(testName)}`)
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between gap-4">
@@ -226,7 +232,7 @@ export default function TestsPage() {
         </span>
       </div>
 
-      {/* ── Recently practiced: clean grid instead of ugly horizontal scroller ── */}
+      {/* ── Recently practiced ── */}
       {recentlyPracticed.length > 0 && showFeatured && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
@@ -237,12 +243,19 @@ export default function TestsPage() {
             {recentlyPracticed.map((t) => {
               const pct = progress[t.name] ?? 0
               const count = attempts[t.name] ?? 0
+              const isNavigating = navigatingTo === t.name
               return (
                 <button
                   key={t.name}
-                  onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-                  className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-accent/30"
+                  onClick={() => handleNavigate(t.name)}
+                  disabled={isNavigating}
+                  className="group relative flex items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40 hover:bg-accent/30 disabled:cursor-wait"
                 >
+                  {isNavigating && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-card/80">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  )}
                   <CircularProgress pct={pct} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium text-card-foreground">{t.name}</div>
@@ -260,12 +273,18 @@ export default function TestsPage() {
         </section>
       )}
 
-      {/* ── Featured test: solid, no shiny glass ── */}
+      {/* ── Featured test ── */}
       {showFeatured && (
         <button
-          onClick={() => router.push(`/tests/${encodeURIComponent(featured.name)}`)}
-          className="group relative w-full overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition hover:border-primary/30"
+          onClick={() => handleNavigate(featured.name)}
+          disabled={navigatingTo === featured.name}
+          className="group relative w-full overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition hover:border-primary/30 disabled:cursor-wait"
         >
+          {navigatingTo === featured.name && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-card/80">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
           <div className="relative flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <span className="rounded-xl bg-blue-600 p-3 text-white">
@@ -338,12 +357,19 @@ export default function TestsPage() {
             const hasSyllabus = !!getSyllabus(t.name)
             const isStarted = count > 0
             const Icon = t.icon
+            const isNavigating = navigatingTo === t.name
             return (
               <button
                 key={t.name}
-                onClick={() => router.push(`/tests/${encodeURIComponent(t.name)}`)}
-                className="group flex flex-col rounded-xl border border-border bg-card p-5 text-left transition hover:border-primary/30"
+                onClick={() => handleNavigate(t.name)}
+                disabled={isNavigating}
+                className="group relative flex flex-col rounded-xl border border-border bg-card p-5 text-left transition hover:border-primary/30 disabled:cursor-wait"
               >
+                {isNavigating && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-card/80">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <span className={`inline-block rounded-lg p-2.5 text-white ${t.color}`}>
                     <Icon className="h-5 w-5" />
