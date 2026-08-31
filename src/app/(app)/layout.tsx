@@ -3,12 +3,16 @@
 import { useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { AppHeader } from "@/components/app-header"
+import { RouteProgress } from "@/components/route-progress"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Route progress bar */}
+      <RouteProgress />
+
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <Sidebar />
