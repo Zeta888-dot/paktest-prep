@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import { getSyllabus } from "@/lib/syllabus"
 
 /* ── Custom field SVG icons (solid, mature, no generic portfolio vibe) ── */
@@ -175,8 +176,13 @@ export default function TestsPage() {
   const [progress, setProgress] = useState<Record<string, number>>({})
   const [lastAttempted, setLastAttempted] = useState<Record<string, string>>({})
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null)
+  const [historyError, setHistoryError] = useState(false)
 
   useEffect(() => {
+    loadHistory()
+  }, [])
+
+  function loadHistory() {
     fetch("/api/history")
       .then((r) => r.json())
       .then((d) => {
@@ -197,9 +203,10 @@ export default function TestsPage() {
         }
         setProgress(pctMap)
         setLastAttempted(last)
+        setHistoryError(false)
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => setHistoryError(true))
+  }
 
   const filtered = tests.filter((t) => {
     const matchQ = t.name.toLowerCase().includes(query.toLowerCase())
@@ -314,6 +321,14 @@ export default function TestsPage() {
             </div>
           </div>
         </button>
+      )}
+
+      {historyError && (
+        <ErrorState
+          title="Couldn't load your progress"
+          desc="Your attempt history failed to load. The tests below are still available."
+          onRetry={loadHistory}
+        />
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

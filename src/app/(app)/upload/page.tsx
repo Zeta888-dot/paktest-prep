@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { ErrorState } from "@/components/ui/error-state"
 import { CustomSelect } from "@/components/ui/custom-select"
 import {
   Upload,
@@ -117,6 +118,7 @@ export default function UploadPage() {
   const [error, setError] = useState("")
 
   const [docs, setDocs] = useState<Doc[]>([])
+  const [docsError, setDocsError] = useState(false)
   const [testName, setTestName] = useState("MDCAT")
 
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -124,10 +126,11 @@ export default function UploadPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const loadDocs = useCallback(() => {
+    setDocsError(false)
     fetch("/api/documents")
       .then((r) => r.json())
       .then((d) => setDocs(d.documents ?? []))
-      .catch(() => {})
+      .catch(() => setDocsError(true))
   }, [])
 
   useEffect(() => {
@@ -412,7 +415,13 @@ export default function UploadPage() {
           )}
         </div>
 
-        {docs.length === 0 ? (
+        {docsError ? (
+          <ErrorState
+            title="Couldn't load your documents"
+            desc="Your documents failed to load. Try again in a moment."
+            onRetry={loadDocs}
+          />
+        ) : docs.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border px-5 py-10 text-center">
             <FolderOpen className="mx-auto h-5 w-5 text-muted-foreground/60" />
             <p className="mt-2 text-sm text-muted-foreground">No documents uploaded yet.</p>

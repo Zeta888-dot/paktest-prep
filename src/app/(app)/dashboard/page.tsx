@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { loadSettings } from "@/lib/settings"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 
 type HistoryRow = {
   id: string
@@ -404,19 +405,28 @@ export default function DashboardPage() {
   const [rows, setRows] = useState<HistoryRow[]>([])
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [hour, setHour] = useState(12)
 
   useEffect(() => {
     setHour(new Date().getHours())
     setName(loadSettings().displayName)
+    loadHistory()
+  }, [])
+
+  function loadHistory() {
+    setError(false)
     fetch("/api/history")
       .then((r) => r.json())
       .then((d) => {
         setRows(d.history ?? [])
         setLoading(false)
       })
-      .catch(() => setLoading(false))
-  }, [])
+      .catch(() => {
+        setLoading(false)
+        setError(true)
+      })
+  }
 
   const attempts = rows.length
   const answered = rows.reduce((a, r) => a + r.total, 0)
@@ -654,6 +664,12 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <ErrorState
+            title="Couldn't load recent attempts"
+            desc="Your history failed to load. Try again in a moment."
+            onRetry={loadHistory}
+          />
         ) : rows.length === 0 ? (
           <EmptyState
             icon={History}

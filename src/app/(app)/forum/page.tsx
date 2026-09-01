@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { loadSettings } from "@/lib/settings"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ErrorState } from "@/components/ui/error-state"
 import {
   MessageCircle,
   ThumbsUp,
@@ -83,6 +84,7 @@ export default function ForumPage() {
   const [body, setBody] = useState("")
   const [posting, setPosting] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyBody, setReplyBody] = useState("")
@@ -100,11 +102,13 @@ export default function ForumPage() {
 
   async function refresh() {
     setLoading(true)
+    setFetchError(false)
     try {
       const d = await (await fetch("/api/forum")).json()
       setList(d.posts ?? [])
     } catch {
       setList([])
+      setFetchError(true)
     } finally {
       setLoading(false)
     }
@@ -246,6 +250,12 @@ export default function ForumPage() {
               </div>
             ))}
           </div>
+        ) : fetchError ? (
+          <ErrorState
+            title="Couldn't load discussions"
+            desc="The forum failed to load. Try again in a moment."
+            onRetry={refresh}
+          />
         ) : visible.length === 0 ? (
           <EmptyState
             icon={MessageCircle}
