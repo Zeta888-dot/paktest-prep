@@ -31,14 +31,14 @@ function pickRandomTopics(subject: string, count: number): string[] {
   return shuffle(subj.topics).slice(0, Math.min(count, subj.topics.length))
 }
 
-async function fetchRecentQuestions(subject: string, limit = 50): Promise<string[]> {
+async function fetchRecentQuestions(subject: string, limit = 30): Promise<string[]> {
   const res = await db.execute(sql`
-    SELECT question FROM questions 
+    SELECT question FROM questions
     WHERE source = ${`mock-kpk-${subject}`}
-    ORDER BY created_at DESC 
+    ORDER BY created_at DESC
     LIMIT ${limit}
   `)
-  return res.map((r: any) => r.question as string)
+  return (res as any[]).map((r) => r.question as string)
 }
 
 async function generateSubjectMCQs(
@@ -49,8 +49,8 @@ async function generateSubjectMCQs(
 ) {
   const topics = pickRandomTopics(subject, 6).join(", ")
   const seed = Math.floor(Math.random() * 100000)
-  
-  const prompt = `You are a senior examiner for KPK Police Constable (BPS-7) written test 2022.
+
+  const prompt = `You are a senior examiner for KPK Police Constable (BPS-7) written test.
 Generate EXACTLY ${count} distinct MCQs for: ${subject}
 Focus areas: ${topics}
 Difficulty: ${difficulty} (Matric/Class 9-10 level)
@@ -58,15 +58,10 @@ Difficulty: ${difficulty} (Matric/Class 9-10 level)
 CRITICAL RULES:
 1. Each question must be UNIQUE and different from these recently used questions:
 ${recentQs.slice(0, 10).join("\n") || "None"}
-
-2. For English vocabulary/grammar questions, if asking about an underlined word, WRAP that word in HTML <u> tags. Example: "What is the synonym of the <u>bold</u> word?" NEVER use quotes or apostrophes like 'word'.
-
+2. For English vocabulary/grammar questions, if asking about an underlined word, WRAP that word in HTML <u> tags. Example: "What is the synonym of <u>bold</u>?" NEVER use quotes or apostrophes like 'word'.
 3. For Urdu questions, write ALL text in proper Urdu script (اردو), NEVER Roman Urdu.
-
-4. Each MCQ must have exactly 4 options (A,B,C,D). The "answer" field MUST match one option EXACTLY word-for-word.
-
+4. Each MCQ must have exactly 4 options. The "answer" field MUST match one option EXACTLY word-for-word.
 5. Questions should be challenging and exam-standard, not trivial.
-
 6. Return ONLY a valid JSON array. No markdown, no extra text.
 
 JSON format:
@@ -77,26 +72,25 @@ JSON format:
   const res = await ai.models.generateContent({
     model: "gemini-2.0-flash",
     contents: prompt,
-    config: { 
+    config: {
       responseMimeType: "application/json",
       temperature: 1.0,
       topK: 40,
       topP: 0.95,
-      seed: seed,
+      seed,
     },
   })
 
-  let text = clean(res.text ?? "[]")
+  const text = clean(res.text ?? "[]")
   const start = text.indexOf("[")
   const end = text.lastIndexOf("]")
   if (start === -1 || end === -1) throw new Error(`Invalid JSON from AI for ${subject}`)
   const mcqs = JSON.parse(text.slice(start, end + 1))
-  
+
   if (!Array.isArray(mcqs) || mcqs.length === 0) {
     throw new Error(`No questions generated for ${subject}`)
   }
 
-  // Validate and fix answers
   const validated = mcqs.map((q: any) => {
     const exact = q.options?.find((o: string) => o === q.answer)
     if (!exact) {
@@ -108,7 +102,6 @@ JSON format:
     return q
   })
 
-  // Store in DB for deduplication
   for (const q of validated) {
     try {
       await db.insert(questions).values({
@@ -118,7 +111,9 @@ JSON format:
         explanation: q.explanation,
         source: `mock-kpk-${subject}`,
       })
-    } catch { /* ignore duplicates */ }
+    } catch {
+      // ignore duplicates
+    }
   }
 
   return validated
@@ -129,13 +124,12 @@ export async function POST(req: Request) {
     const { part, difficulty = "hard" } = await req.json()
 
     if (part === "a") {
-      // Parallel generation for all 5 subjects per KPK syllabus
       const [recentEng, recentUrdu, recentIsl, recentGK, recentMath] = await Promise.all([
-        fetchRecentQuestions("English", 30),
-        fetchRecentQuestions("Urdu", 30),
-        fetchRecentQuestions("Islamiyat", 30),
-        fetchRecentQuestions("General Knowledge (incl. Pak Studies)", 30),
-        fetchRecentQuestions("Mathematics", 30),
+        fetchRecentQuestions("English"),
+        fetchRecentQuestions("Urdu"),
+        fetchRecentQuestions("Islamiyat"),
+        fetchRecentQuestions("General Knowledge (incl. Pak Studies)"),
+        fetchRecentQuestions("Mathematics"),
       ])
 
       const [eng, urdu, isl, gk, math] = await Promise.all([
@@ -147,7 +141,6 @@ export async function POST(req: Request) {
       ])
 
       const allMCQs = shuffle([...eng, ...urdu, ...isl, ...gk, ...math])
-      
       return NextResponse.json({ mcqs: allMCQs })
     }
 
@@ -156,9 +149,11 @@ export async function POST(req: Request) {
 Generate:
 1. FIVE English sentences for translation into Urdu (Class 9th & 10th level)
 2. FIVE Urdu sentence-formation questions (4-6 shuffled Urdu words each)
+
 For every item provide TWO finalized reference answers:
 - referenceUrdu (Urdu script)
 - referenceRoman (Roman Urdu)
+
 Return ONLY valid JSON. No markdown.
 {
   "translations": [ { "question": "Pakistan is a beautiful country.", "referenceUrdu": "پاکستان ایک خوبصورت ملک ہے۔", "referenceRoman": "Pakistan ek khoobsurat mulk hai." } ],
@@ -171,7 +166,7 @@ Return ONLY valid JSON. No markdown.
         config: { responseMimeType: "application/json", temperature: 0.8 },
       })
 
-      let text = clean(res.text ?? "{}")
+      const text = clean(res.text ?? "{}")
       const start = text.indexOf("{")
       const end = text.lastIndexOf("}")
       if (start === -1 || end === -1) throw new Error("Invalid response format from AI")

@@ -21,7 +21,7 @@ type MockMCQ = { subject: string; question: string; options: string[]; answer: s
 type SubQ = { question: string; referenceUrdu: string; referenceRoman: string }
 type BLog = { section: string; question: string; referenceUrdu: string; referenceRoman: string; answer: string; score: number }
 
-const PART_A_TIME = 20 * 60
+const PART_A_TIME = 80 * 60
 const PART_B_TIME = 15 * 60
 
 function normalize(s: string) {
@@ -256,8 +256,8 @@ export default function MockPage() {
 
         <div className="space-y-3 rounded-xl border border-border bg-card p-6">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Part A: MCQs (4 per subject)</span>
-            <span className="font-medium text-card-foreground">80 marks · 20 min</span>
+            <span className="text-muted-foreground">Part A: MCQs (15+15+15+20+15)</span>
+            <span className="font-medium text-card-foreground">80 marks · 80 min</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Part B: Translation + Formation</span>
@@ -302,7 +302,7 @@ export default function MockPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-10 gap-1.5">
+        <div className="grid grid-cols-10 gap-1">
           {mcqs.map((_, i) => {
             const isAnswered = answers[i] !== undefined
             const isMarked = marked.includes(i)
@@ -310,7 +310,7 @@ export default function MockPage() {
               <button
                 key={i}
                 onClick={() => setCurrent(i)}
-                className={`h-8 rounded-md text-xs font-medium transition ${
+                className={`h-7 rounded text-[10px] font-medium transition ${
                   isMarked
                     ? "bg-amber-500 text-white shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
                     : isAnswered
@@ -328,7 +328,10 @@ export default function MockPage() {
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
             {q.subject}
           </span>
-          <h1 className="mt-3 text-lg font-semibold text-foreground">{q.question}</h1>
+          <h1
+            className="mt-3 text-lg font-semibold text-foreground"
+            dangerouslySetInnerHTML={{ __html: q.question }}
+          />
           <div className="mt-4 space-y-2">
             {q.options.map((opt, j) => (
               <button
@@ -514,7 +517,10 @@ export default function MockPage() {
             const correct = userAns === q.answer
             return (
               <div key={i} className={`rounded-xl border p-4 ${correct ? "border-emerald-400/30 bg-emerald-400/5" : "border-red-400/30 bg-red-400/5"}`}>
-                <div className="text-sm font-medium text-foreground">{i + 1}. {q.question}</div>
+                <div
+                  className="text-sm font-medium text-foreground"
+                  dangerouslySetInnerHTML={{ __html: `${i + 1}. ${q.question}` }}
+                />
                 <div className="mt-2 space-y-0.5 text-xs">
                   <p className={correct ? "text-emerald-400" : "text-red-400"}>
                     Your answer: {userAns ?? "Not answered"}

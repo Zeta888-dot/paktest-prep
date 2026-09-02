@@ -6,6 +6,14 @@ import { embedChunks } from "@/lib/rag"
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
+function clean(text: string) {
+  let t = text.trim()
+  if (t.startsWith("```json")) t = t.slice(7)
+  if (t.startsWith("```")) t = t.slice(3)
+  if (t.endsWith("```")) t = t.slice(0, -3)
+  return t.trim()
+}
+
 export async function POST(req: Request) {
   try {
     const { topic, count = 5, test } = await req.json()
@@ -14,10 +22,9 @@ export async function POST(req: Request) {
     const [vec] = await embedChunks([topic])
     const vecStr = `[${vec.join(",")}]`
 
-    // Fetch MORE chunks with diversity (8 instead of 3)
     const results = test
       ? await db.execute(sql`
-          SELECT c.content, c.embedding <=> ${vecStr}::vector as dist 
+          SELECT c.content, c.embedding <=> ${vecStr}::vector as dist
           FROM chunks c
           JOIN documents d ON c.document_id = d.id
           WHERE d.test_name = ${test}
@@ -25,24 +32,23 @@ export async function POST(req: Request) {
           LIMIT 8
         `)
       : await db.execute(sql`
-          SELECT content, embedding <=> ${vecStr}::vector as dist 
+          SELECT content, embedding <=> ${vecStr}::vector as dist
           FROM chunks
           ORDER BY embedding <=> ${vecStr}::vector
           LIMIT 8
         `)
-    
-    // Deduplicate and filter low relevance
+
     const seen = new Set<string>()
-    const context = results
-      .filter((r: any) => {
-        if ((r.dist as number) > 0.5) return false // filter low similarity
+    const context = (results as any[])
+      .filter((r) => {
+        if ((r.dist as number) > 0.5) return false
         const key = (r.content as string).slice(0, 100)
         if (seen.has(key)) return false
         seen.add(key)
         return true
       })
-      .slice(0, 5) // top 5 diverse chunks
-      .map((r: any) => r.content as string)
+      .slice(0, 5)
+      .map((r) => r.content as string)
       .join("\n\n---\n\n")
 
     if (!context.trim()) {
@@ -57,7 +63,6 @@ export async function POST(req: Request) {
     }
 
     const prompt = `You are an expert examiner for Pakistani competitive exams.
-
 Using ONLY the study material below, create ${count} MCQs about: "${topic}"
 
 CONTEXT:
@@ -69,6 +74,7 @@ CRITICAL RULES:
 - For English vocabulary, use <u>HTML underline tags</u> for underlined words. NEVER use quotes/apostrophes.
 - Urdu must be in proper Urdu script (اردو), NEVER Roman Urdu.
 - Generate NEW questions different from previous attempts.
+- The "answer" field must match one option word-for-word.
 - Return ONLY valid JSON: {"questions": [...]}
 
 JSON format:
@@ -86,20 +92,14 @@ JSON format:
     const res = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: prompt,
-      config: { 
+      config: {
         responseMimeType: "application/json",
         temperature: 1.0,
-        seed: seed,
+        seed,
       },
     })
 
-    let text = res.text ?? '{"questions":[]}'
-    text = text.trim()
-    if (text.startsWith("```json")) text = text.slice(7)
-    if (text.startsWith("```")) text = text.slice(3)
-    if (text.endsWith("```")) text = text.slice(0, -3)
-    text = text.trim()
-
+    const text = clean(res.text ?? '{"questions":[]}')
     const start = text.indexOf("{")
     const end = text.lastIndexOf("}")
     if (start === -1 || end === -1) throw new Error("Invalid format")

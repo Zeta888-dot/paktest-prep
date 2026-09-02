@@ -137,5 +137,12 @@ export const syllabi: TestSyllabus[] = [
 ]
 
 export function getSyllabus(testName: string): TestSyllabus | undefined {
-  return syllabi.find((s) => s.testName === testName)
+  const exact = syllabi.find((s) => s.testName === testName)
+  if (exact) return exact
+  const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+  const a = norm(testName)
+  return syllabi.find((s) => {
+    const b = norm(s.testName)
+    return a.includes(b) || b.includes(a)
+  })
 }
