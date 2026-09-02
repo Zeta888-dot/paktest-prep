@@ -8,51 +8,59 @@ export async function POST(req: Request) {
     const { test, topic, count = 5, difficulty = "medium" } = await req.json()
 
     const focusArea = topic || test
+    const seed = Math.floor(Math.random() * 100000)
+    const dynamicTopics = [
+      "Tenses", "Prepositions", "Active Passive Voice", "Synonyms Antonyms",
+      "Idioms Phrases", "Islamic History", "Khulafa-e-Rashideen", "Pakistan Movement",
+      "Constitution 1973", "LCM HCF", "Percentage", "Profit Loss"
+    ]
+    const injectedTopics = dynamicTopics
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 4)
+      .join(", ")
 
-    const prompt = `You are a senior examiner for Pakistani competitive exams (NTS, ETEA, PPSC, FPSC, KPK Police, CSS, etc.).
+    const prompt = `You are a senior examiner for Pakistani competitive exams.
 
-Generate exactly ${count} high-quality MCQs for this test and topic:
-
+Generate exactly ${count} high-quality MCQs for:
 Test: "${test}"
 Subject/Topic: "${focusArea}"
 
-DIFFICULTY LEVEL: ${difficulty.toUpperCase()}
-- EASY: direct recall and definition-based questions
-- MEDIUM: conceptual questions with simple application
-- HARD: tricky, application-based, multi-step reasoning questions
+DIFFICULTY: ${difficulty.toUpperCase()}
+- EASY: direct recall
+- MEDIUM: conceptual
+- HARD: tricky, application-based, multi-step reasoning
 
-REQUIREMENTS:
-1. Questions must be strictly related to the subject/topic mentioned above
-2. Difficulty: Class 9th & 10th (Secondary School) level — as per official KPK Police syllabus
-3. Each question must have EXACTLY 4 options labeled A, B, C, D
-4. Only ONE correct answer — it must match one of the 4 options EXACTLY (word-for-word)
-5. Avoid repetitive questions — each must test a different concept
-6. Include variety: factual, conceptual, application-based
-7. For English: focus on grammar, vocabulary, tenses, voice, prepositions
-8. For Urdu: focus on grammar, synonyms/antonyms, idioms, proverbs. Write all Urdu text in proper Urdu script (Arabic Urdu), never in Roman Urdu
-9. For Pak Studies: focus on history, geography, constitution, personalities
-10. For Islamiyat: focus on Quran, Hadith, Seerat, Khulafa, Islamic events
-11. For GK/Current Affairs: focus on Pakistan-centric facts, recent events
-12. For Mathematics: focus on arithmetic, algebra, geometry, sets — with numerical problems where relevant
-13. Explanation must be concise (1-2 sentences) and educational
-14. The "answer" field MUST exactly match one of the 4 options — do NOT abbreviate
+STRICT RULES:
+1. Temperature is high — generate COMPLETELY NEW questions, never repeat common examples.
+2. For English questions about underlined words, use HTML <u> tags. Example: "What is the meaning of <u>word</u>?" NEVER use 'word' or "word".
+3. Urdu text must be in proper Urdu script (اردو), NEVER Roman Urdu.
+4. Each question: exactly 4 options, ONE correct answer matching EXACTLY.
+5. Answer must match one option word-for-word.
+6. Explanations: 1-2 sentences, educational.
+7. Return ONLY valid JSON array.
 
-Return ONLY a valid JSON array. No markdown, no extra text.
+Injected variety topics to avoid repetition: ${injectedTopics}
 
-JSON format:
+JSON:
 [
   {
     "question": "What is the capital of Pakistan?",
     "options": ["Karachi", "Lahore", "Islamabad", "Quetta"],
     "answer": "Islamabad",
-    "explanation": "Islamabad became the capital of Pakistan in 1967, replacing Karachi."
+    "explanation": "Islamabad became the capital in 1967."
   }
 ]`
 
     const res = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
-      config: { responseMimeType: "application/json" },
+      config: { 
+        responseMimeType: "application/json",
+        temperature: 1.0,
+        topK: 40,
+        topP: 0.95,
+        seed: seed,
+      },
     })
 
     let text = res.text ?? "[]"
@@ -64,17 +72,13 @@ JSON format:
 
     const start = text.indexOf("[")
     const end = text.lastIndexOf("]")
-    if (start === -1 || end === -1) {
-      throw new Error("Invalid response format from AI")
-    }
+    if (start === -1 || end === -1) throw new Error("Invalid response format")
 
     const questions = JSON.parse(text.slice(start, end + 1))
-
     if (!Array.isArray(questions) || questions.length === 0) {
       throw new Error("No questions generated")
     }
 
-    // Validate: ensure answer matches one of the options exactly
     const validated = questions.map((q: any) => {
       const exactMatch = q.options.find((opt: string) => opt === q.answer)
       if (!exactMatch) {
@@ -90,7 +94,7 @@ JSON format:
   } catch (e: any) {
     console.error("Generate error:", e)
     return NextResponse.json(
-      { error: e.message || "Failed to generate questions. Please try again." },
+      { error: e.message || "Failed to generate questions." },
       { status: 500 }
     )
   }

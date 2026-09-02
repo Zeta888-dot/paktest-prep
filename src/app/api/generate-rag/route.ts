@@ -9,70 +9,91 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 export async function POST(req: Request) {
   try {
     const { topic, count = 5, test } = await req.json()
+    const seed = Math.floor(Math.random() * 100000)
 
     const [vec] = await embedChunks([topic])
     const vecStr = `[${vec.join(",")}]`
 
+    // Fetch MORE chunks with diversity (8 instead of 3)
     const results = test
       ? await db.execute(sql`
-          SELECT c.content FROM chunks c
+          SELECT c.content, c.embedding <=> ${vecStr}::vector as dist 
+          FROM chunks c
           JOIN documents d ON c.document_id = d.id
           WHERE d.test_name = ${test}
           ORDER BY c.embedding <=> ${vecStr}::vector
-          LIMIT 3
+          LIMIT 8
         `)
       : await db.execute(sql`
-          SELECT content FROM chunks
+          SELECT content, embedding <=> ${vecStr}::vector as dist 
+          FROM chunks
           ORDER BY embedding <=> ${vecStr}::vector
-          LIMIT 3
+          LIMIT 8
         `)
-    const context = results.map((r) => r.content as string).join("\n\n")
+    
+    // Deduplicate and filter low relevance
+    const seen = new Set<string>()
+    const context = results
+      .filter((r: any) => {
+        if ((r.dist as number) > 0.5) return false // filter low similarity
+        const key = (r.content as string).slice(0, 100)
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .slice(0, 5) // top 5 diverse chunks
+      .map((r: any) => r.content as string)
+      .join("\n\n---\n\n")
 
     if (!context.trim()) {
       return NextResponse.json(
         {
           error: test
-            ? `No material uploaded for "${test}" yet. Upload it first or switch to Syllabus.`
-            : "No material uploaded yet. Please upload a PDF or image first.",
+            ? `No relevant material for "${test}". Upload syllabus PDF or switch to Syllabus mode.`
+            : "No material found. Upload a PDF first.",
         },
         { status: 400 }
       )
     }
 
-    const examLine = test ? `These questions are for the "${test}" exam — match its difficulty level.\n` : ""
+    const prompt = `You are an expert examiner for Pakistani competitive exams.
 
-    const prompt = `You are an expert for Pakistani competitive exams. Using ONLY the study material provided below, create ${count} multiple-choice questions (MCQs) about: "${topic}".
+Using ONLY the study material below, create ${count} MCQs about: "${topic}"
 
-${examLine}STRICT RULES:
-- Use ONLY the information from the provided material. Do NOT make up facts.
-- Each question must have exactly 4 options (A, B, C, D).
-- Only ONE correct answer per question.
-- Provide a brief explanation referencing the material.
-- Return ONLY a valid JSON object with a "questions" array. No markdown, no extra text.
-
-STUDY MATERIAL:
+CONTEXT:
 ${context}
+
+CRITICAL RULES:
+- Use ONLY the provided material. Do NOT invent facts.
+- Each question: exactly 4 options, ONE correct answer.
+- For English vocabulary, use <u>HTML underline tags</u> for underlined words. NEVER use quotes/apostrophes.
+- Urdu must be in proper Urdu script (اردو), NEVER Roman Urdu.
+- Generate NEW questions different from previous attempts.
+- Return ONLY valid JSON: {"questions": [...]}
 
 JSON format:
 {
   "questions": [
     {
       "question": "What is...?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "answer": "Option B",
+      "options": ["A", "B", "C", "D"],
+      "answer": "B",
       "explanation": "According to the material..."
     }
   ]
 }`
 
     const res = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.0-flash",
       contents: prompt,
-      config: { responseMimeType: "application/json" },
+      config: { 
+        responseMimeType: "application/json",
+        temperature: 1.0,
+        seed: seed,
+      },
     })
 
     let text = res.text ?? '{"questions":[]}'
-
     text = text.trim()
     if (text.startsWith("```json")) text = text.slice(7)
     if (text.startsWith("```")) text = text.slice(3)
@@ -81,21 +102,16 @@ JSON format:
 
     const start = text.indexOf("{")
     const end = text.lastIndexOf("}")
-    if (start === -1 || end === -1) {
-      throw new Error("Invalid response format from AI")
-    }
+    if (start === -1 || end === -1) throw new Error("Invalid format")
 
     const data = JSON.parse(text.slice(start, end + 1))
-
-    if (!data.questions || !Array.isArray(data.questions) || data.questions.length === 0) {
-      throw new Error("No questions generated from material")
-    }
+    if (!data.questions?.length) throw new Error("No questions generated")
 
     return NextResponse.json({ questions: data.questions })
   } catch (e: any) {
-    console.error("RAG generate error:", e)
+    console.error("RAG error:", e)
     return NextResponse.json(
-      { error: e.message || "Failed to generate questions from material. Please try again." },
+      { error: e.message || "Failed to generate from material." },
       { status: 500 }
     )
   }
