@@ -1,8 +1,6 @@
-import { GoogleGenAI } from "@google/genai"
 import { NextResponse } from "next/server"
 import { friendlyError } from "@/lib/ai-errors"
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+import { generateJSON } from "@/lib/ai"
 
 function clean(text: string) {
   let t = text.trim()
@@ -35,16 +33,7 @@ RULES:
   "formations": [ { "question": "الفاظ: پاکستان ، ہمارا ، وطن ، ہے", "referenceUrdu": "پاکستان ہمارا وطن ہے۔", "referenceRoman": "Pakistan hamara watan hai." } ]
 }`
 
-    const res = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.9,
-      },
-    })
-
-    const text = clean(res.text ?? "{}")
+    const text = clean(await generateJSON(prompt, 0.9))
     const start = text.indexOf("{")
     const end = text.lastIndexOf("}")
     if (start === -1 || end === -1) throw new Error("Invalid response format")

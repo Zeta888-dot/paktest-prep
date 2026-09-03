@@ -1,12 +1,10 @@
-import { GoogleGenAI } from "@google/genai"
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { questions } from "@/db/schema"
 import { sql } from "drizzle-orm"
 import { getSyllabus } from "@/lib/syllabus"
 import { friendlyError } from "@/lib/ai-errors"
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+import { generateJSON } from "@/lib/ai"
 
 function clean(text: string) {
   let t = text.trim()
@@ -49,7 +47,6 @@ async function generateSubjectMCQs(
   recentQs: string[]
 ) {
   const topics = pickRandomTopics(subject, 6).join(", ")
-  const seed = Math.floor(Math.random() * 100000)
 
   const prompt = `You are a senior examiner for KPK Police Constable (BPS-7) written test.
 Generate EXACTLY ${count} distinct MCQs for: ${subject}
@@ -70,19 +67,7 @@ JSON format:
   { "subject": "${subject}", "question": "...", "options": ["A","B","C","D"], "answer": "A", "explanation": "..." }
 ]`
 
-  const res = await ai.models.generateContent({
-    model: "gemini-3.7-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      temperature: 1.0,
-      topK: 40,
-      topP: 0.95,
-      seed,
-    },
-  })
-
-  const text = clean(res.text ?? "[]")
+  const text = clean(await generateJSON(prompt, 1.0))
   const start = text.indexOf("[")
   const end = text.lastIndexOf("]")
   if (start === -1 || end === -1) throw new Error(`Invalid JSON from AI for ${subject}`)
@@ -122,27 +107,13 @@ JSON format:
 
 export async function POST(req: Request) {
   try {
-    const { part, difficulty = "hard" } = await req.json()
+    const { part, difficulty = "hard", subject, count = 15 } = await req.json()
 
     if (part === "a") {
-      const [recentEng, recentUrdu, recentIsl, recentGK, recentMath] = await Promise.all([
-        fetchRecentQuestions("English"),
-        fetchRecentQuestions("Urdu"),
-        fetchRecentQuestions("Islamiyat"),
-        fetchRecentQuestions("General Knowledge (incl. Pak Studies)"),
-        fetchRecentQuestions("Mathematics"),
-      ])
-
-      const [eng, urdu, isl, gk, math] = await Promise.all([
-        generateSubjectMCQs("English", 15, difficulty, recentEng),
-        generateSubjectMCQs("Urdu", 15, difficulty, recentUrdu),
-        generateSubjectMCQs("Islamiyat", 15, difficulty, recentIsl),
-        generateSubjectMCQs("General Knowledge (incl. Pak Studies)", 20, difficulty, recentGK),
-        generateSubjectMCQs("Mathematics", 15, difficulty, recentMath),
-      ])
-
-      const allMCQs = shuffle([...eng, ...urdu, ...isl, ...gk, ...math])
-      return NextResponse.json({ mcqs: allMCQs })
+      if (!subject) return NextResponse.json({ error: "Subject required" }, { status: 400 })
+      const recent = await fetchRecentQuestions(subject)
+      const mcqs = await generateSubjectMCQs(subject, count, difficulty, recent)
+      return NextResponse.json({ mcqs })
     }
 
     if (part === "b") {
@@ -161,16 +132,7 @@ Return ONLY valid JSON. No markdown.
   "formations": [ { "question": "الفاظ: پاکستان ، ہمارا ، وطن ، ہے", "referenceUrdu": "پاکستان ہمارا وطن ہے۔", "referenceRoman": "Pakistan hamara watan hai." } ]
 }`
 
-      const res = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          temperature: 0.8,
-        },
-      })
-
-      const text = clean(res.text ?? "{}")
+      const text = clean(await generateJSON(prompt, 0.8))
       const start = text.indexOf("{")
       const end = text.lastIndexOf("}")
       if (start === -1 || end === -1) throw new Error("Invalid response format from AI")

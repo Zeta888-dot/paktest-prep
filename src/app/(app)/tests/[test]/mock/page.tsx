@@ -24,6 +24,23 @@ type BLog = { section: string; question: string; referenceUrdu: string; referenc
 const PART_A_TIME = 80 * 60
 const PART_B_TIME = 15 * 60
 
+const SUBJECT_PLAN = [
+  { subject: "English", count: 15 },
+  { subject: "Urdu", count: 15 },
+  { subject: "Islamiyat", count: 15 },
+  { subject: "General Knowledge (incl. Pak Studies)", count: 20 },
+  { subject: "Mathematics", count: 15 },
+]
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 function normalize(s: string) {
   return s.toLowerCase().replace(/[.,!?;:"'۔،؟؛]/g, "").replace(/\s+/g, " ").trim()
 }
@@ -58,6 +75,7 @@ export default function MockPage() {
   const [phase, setPhase] = useState<"intro" | "partA" | "partB" | "result">("intro")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [stage, setStage] = useState(0)
 
   const [mcqs, setMcqs] = useState<MockMCQ[]>([])
   const [answers, setAnswers] = useState<Record<number, string>>({})
@@ -105,15 +123,21 @@ export default function MockPage() {
   async function start() {
     setLoading(true)
     setError("")
+    setStage(0)
     try {
-      const res = await fetch("/api/generate-mock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ part: "a" }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to generate mock test")
-      setMcqs(data.mcqs ?? [])
+      const all: MockMCQ[] = []
+      for (let i = 0; i < SUBJECT_PLAN.length; i++) {
+        setStage(i)
+        const res = await fetch("/api/generate-mock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ part: "a", subject: SUBJECT_PLAN[i].subject, count: SUBJECT_PLAN[i].count }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || `Failed to generate ${SUBJECT_PLAN[i].subject}`)
+        all.push(...(data.mcqs ?? []))
+      }
+      setMcqs(shuffle(all))
       setAnswers({})
       setMarked([])
       setCurrent(0)
@@ -207,23 +231,22 @@ export default function MockPage() {
     if (answers[i] === q.answer) bySubject[q.subject].correct++
   })
 
-  // Loading
   if (loading) {
     return (
       <GenerationProgress
         title="Preparing your exam"
         steps={[
-          "Setting Part A paper",
-          "Balancing all 5 subjects",
-          "Preparing Part B tasks",
-          "Finalizing marks distribution",
-          "Almost there",
+          "English paper (15 MCQs)",
+          "Urdu paper (15 MCQs)",
+          "Islamiyat paper (15 MCQs)",
+          "General Knowledge paper (20 MCQs)",
+          "Mathematics paper (15 MCQs)",
         ]}
+        currentStep={stage}
       />
     )
   }
 
-  // Error
   if (error) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center text-center animate-fade-up">
@@ -240,7 +263,6 @@ export default function MockPage() {
     )
   }
 
-  // Intro
   if (phase === "intro") {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -280,7 +302,6 @@ export default function MockPage() {
     )
   }
 
-  // Part A
   if (phase === "partA" && mcqs.length > 0) {
     const q = mcqs[current]
     return (
@@ -312,7 +333,7 @@ export default function MockPage() {
                 onClick={() => setCurrent(i)}
                 className={`h-7 rounded text-[10px] font-medium transition ${
                   isMarked
-                    ? "bg-amber-500 text-white shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
+                    ? "bg-amber-500 text-white"
                     : isAnswered
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-accent"
@@ -360,7 +381,7 @@ export default function MockPage() {
             }
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
               marked.includes(current)
-                ? "bg-amber-500 text-white shadow-[0_4px_14px_rgba(245,158,11,0.35)]"
+                ? "bg-amber-500 text-white"
                 : "text-muted-foreground hover:bg-accent"
             }`}
           >
@@ -390,7 +411,6 @@ export default function MockPage() {
     )
   }
 
-  // Part B
   if (phase === "partB" && bq) {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">
@@ -467,7 +487,6 @@ export default function MockPage() {
     )
   }
 
-  // Result
   if (phase === "result") {
     return (
       <div className="mx-auto max-w-2xl space-y-6 animate-fade-up">

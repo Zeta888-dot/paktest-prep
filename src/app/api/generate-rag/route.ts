@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
-import { GoogleGenAI } from "@google/genai"
 import { db } from "@/db"
 import { embedChunks } from "@/lib/rag"
 import { friendlyError } from "@/lib/ai-errors"
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+import { generateJSON } from "@/lib/ai"
 
 function clean(text: string) {
   let t = text.trim()
@@ -18,7 +16,6 @@ function clean(text: string) {
 export async function POST(req: Request) {
   try {
     const { topic, count = 5, test } = await req.json()
-    const seed = Math.floor(Math.random() * 100000)
 
     const [vec] = await embedChunks([topic])
     const vecStr = `[${vec.join(",")}]`
@@ -90,19 +87,7 @@ JSON format:
   ]
 }`
 
-    const res = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        temperature: 1.0,
-        topK: 40,
-        topP: 0.95,
-        seed,
-      },
-    })
-
-    const text = clean(res.text ?? '{"questions":[]}')
+    const text = clean(await generateJSON(prompt, 1.0))
     const start = text.indexOf("{")
     const end = text.lastIndexOf("}")
     if (start === -1 || end === -1) throw new Error("Invalid format")
