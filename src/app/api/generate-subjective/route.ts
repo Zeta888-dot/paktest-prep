@@ -1,70 +1,58 @@
 import { GoogleGenAI } from "@google/genai"
 import { NextResponse } from "next/server"
+import { friendlyError } from "@/lib/ai-errors"
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
+function clean(text: string) {
+  let t = text.trim()
+  if (t.startsWith("```json")) t = t.slice(7)
+  if (t.startsWith("```")) t = t.slice(3)
+  if (t.endsWith("```")) t = t.slice(0, -3)
+  return t.trim()
+}
+
 export async function POST(req: Request) {
   try {
-    const { section, count = 5 } = await req.json()
+    const { test } = await req.json()
 
-    const isTranslation = section === "english-translation"
+    const prompt = `You are an examiner for ${test || "Pakistani competitive exams"} written test (Part B - Subjective).
+Generate:
+1. FIVE English sentences for translation into Urdu (Class 9th & 10th level)
+2. FIVE Urdu sentence-formation questions (4-6 shuffled Urdu words each)
 
-    const prompt = isTranslation
-      ? `You are an examiner for the KPK Police Constable written test (Part B - English).
-Generate exactly ${count} English sentences for translation into Urdu, at Class 9th & 10th level.
-Sentences must be simple, meaningful and test everyday vocabulary and grammar.
-For each sentence provide TWO finalized reference answers:
-1. referenceUrdu — correct translation in Urdu script (Arabic Urdu)
-2. referenceRoman — correct translation in Roman Urdu (English letters)
-Return ONLY a valid JSON array. No markdown.
-[
-  {
-    "question": "Pakistan is a beautiful country.",
-    "referenceUrdu": "پاکستان ایک خوبصورت ملک ہے۔",
-    "referenceRoman": "Pakistan ek khoobsurat mulk hai."
-  }
-]`
-      : `You are an examiner for the KPK Police Constable written test (Part B - Urdu).
-Generate exactly ${count} sentence-formation questions at Class 9th & 10th level.
-Each question gives 4-6 shuffled Urdu words; the candidate must form a correct sentence from them.
-For each question provide TWO finalized reference answers:
-1. referenceUrdu — correct sentence in Urdu script
-2. referenceRoman — correct sentence in Roman Urdu
-Return ONLY a valid JSON array. No markdown.
-[
-  {
-    "question": "الفاظ: پاکستان ، ہمارا ، وطن ، ہے",
-    "referenceUrdu": "پاکستان ہمارا وطن ہے۔",
-    "referenceRoman": "Pakistan hamara watan hai."
-  }
-]`
+For every item provide TWO finalized reference answers:
+- referenceUrdu (Urdu script)
+- referenceRoman (Roman Urdu)
+
+RULES:
+- referenceUrdu must be in proper Urdu script (اردو), NEVER Roman Urdu.
+- Sentences should be exam-standard and varied each time.
+- Return ONLY valid JSON. No markdown.
+
+{
+  "translations": [ { "question": "Pakistan is a beautiful country.", "referenceUrdu": "پاکستان ایک خوبصورت ملک ہے۔", "referenceRoman": "Pakistan ek khoobsurat mulk hai." } ],
+  "formations": [ { "question": "الفاظ: پاکستان ، ہمارا ، وطن ، ہے", "referenceUrdu": "پاکستان ہمارا وطن ہے۔", "referenceRoman": "Pakistan hamara watan hai." } ]
+}`
 
     const res = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: prompt,
-      config: { responseMimeType: "application/json" },
+      config: { responseMimeType: "application/json", temperature: 0.9 },
     })
 
-    let text = res.text ?? "[]"
-    text = text.trim()
-    if (text.startsWith("```json")) text = text.slice(7)
-    if (text.startsWith("```")) text = text.slice(3)
-    if (text.endsWith("```")) text = text.slice(0, -3)
-    text = text.trim()
+    const text = clean(res.text ?? "{}")
+    const start = text.indexOf("{")
+    const end = text.lastIndexOf("}")
+    if (start === -1 || end === -1) throw new Error("Invalid response format")
 
-    const start = text.indexOf("[")
-    const end = text.lastIndexOf("]")
-    if (start === -1 || end === -1) throw new Error("Invalid response format from AI")
+    const data = JSON.parse(text.slice(start, end + 1))
+    if (!data.translations?.length || !data.formations?.length)
+      throw new Error("No questions generated")
 
-    const questions = JSON.parse(text.slice(start, end + 1))
-    if (!Array.isArray(questions) || questions.length === 0) throw new Error("No questions generated")
-
-    return NextResponse.json({ questions })
+    return NextResponse.json(data)
   } catch (e: any) {
     console.error("Generate subjective error:", e)
-    return NextResponse.json(
-      { error: e.message || "Failed to generate questions." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 })
   }
 }

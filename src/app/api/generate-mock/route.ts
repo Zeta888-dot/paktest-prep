@@ -4,6 +4,7 @@ import { db } from "@/db"
 import { questions } from "@/db/schema"
 import { sql } from "drizzle-orm"
 import { getSyllabus } from "@/lib/syllabus"
+import { friendlyError } from "@/lib/ai-errors"
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
@@ -70,7 +71,7 @@ JSON format:
 ]`
 
   const res = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: "gemini-3.6-flash",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -161,7 +162,7 @@ Return ONLY valid JSON. No markdown.
 }`
 
       const res = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.6-flash",
         contents: prompt,
         config: { responseMimeType: "application/json", temperature: 0.8 },
       })
@@ -180,9 +181,6 @@ Return ONLY valid JSON. No markdown.
     return NextResponse.json({ error: "Invalid part" }, { status: 400 })
   } catch (e: any) {
     console.error("Generate mock error:", e)
-    return NextResponse.json(
-      { error: e.message || "Failed to generate mock test." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm"
 import { GoogleGenAI } from "@google/genai"
 import { db } from "@/db"
 import { embedChunks } from "@/lib/rag"
+import { friendlyError } from "@/lib/ai-errors"
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
@@ -90,7 +91,7 @@ JSON format:
 }`
 
     const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -110,9 +111,6 @@ JSON format:
     return NextResponse.json({ questions: data.questions })
   } catch (e: any) {
     console.error("RAG error:", e)
-    return NextResponse.json(
-      { error: e.message || "Failed to generate from material." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 })
   }
 }

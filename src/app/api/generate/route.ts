@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai"
 import { NextResponse } from "next/server"
+import { friendlyError } from "@/lib/ai-errors"
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
@@ -60,7 +61,7 @@ JSON:
 ]`
 
     const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -95,9 +96,6 @@ JSON:
     return NextResponse.json({ questions: validated })
   } catch (e: any) {
     console.error("Generate error:", e)
-    return NextResponse.json(
-      { error: e.message || "Failed to generate questions." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 })
   }
 }
