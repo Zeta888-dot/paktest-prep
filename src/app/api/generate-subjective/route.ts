@@ -36,9 +36,12 @@ RULES:
 }`
 
     const res = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
-      config: { responseMimeType: "application/json", temperature: 0.9 },
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.9,
+      },
     })
 
     const text = clean(res.text ?? "{}")

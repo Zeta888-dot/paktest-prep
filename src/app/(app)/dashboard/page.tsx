@@ -406,7 +406,7 @@ export default function DashboardPage() {
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [hour, setHour] = useState(12)
+  const [hour, setHour] = useState<number | null>(null)
 
   useEffect(() => {
     setHour(new Date().getHours())
@@ -456,9 +456,10 @@ export default function DashboardPage() {
   const maxQs = Math.max(...week.map((w) => w.qs), 1)
   const todayQs = week[6].qs
 
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
-  const GreetingIcon = hour < 6 || hour > 18 ? Moon : Sun
+  const greeting = hour === null
+    ? "Welcome"
+    : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
+  const GreetingIcon = hour === null || hour < 6 || hour > 18 ? Moon : Sun
 
   return (
     <div className="space-y-8 animate-fade-up">

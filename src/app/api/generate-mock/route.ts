@@ -71,7 +71,7 @@ JSON format:
 ]`
 
   const res = await ai.models.generateContent({
-    model: "gemini-3.6-flash",
+    model: "gemini-3.7-flash",
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -162,9 +162,12 @@ Return ONLY valid JSON. No markdown.
 }`
 
       const res = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         contents: prompt,
-        config: { responseMimeType: "application/json", temperature: 0.8 },
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.8,
+        },
       })
 
       const text = clean(res.text ?? "{}")

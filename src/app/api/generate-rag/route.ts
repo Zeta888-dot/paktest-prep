@@ -91,11 +91,13 @@ JSON format:
 }`
 
     const res = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
         temperature: 1.0,
+        topK: 40,
+        topP: 0.95,
         seed,
       },
     })
