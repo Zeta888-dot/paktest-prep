@@ -1,517 +1,64 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import {
-  ArrowRight,
-  Brain,
-  FileUp,
-  BarChart3,
-  MessagesSquare,
-  GraduationCap,
-  CheckCircle2,
-  XCircle,
-  ChevronDown,
-  Star,
-  Users,
-  Zap,
-  BookOpen,
-  Target,
-  ChevronUp,
-  Menu,
-  X,
-  Command,
-  Search,
-  LayoutDashboard,
-} from "lucide-react"
+import { useState } from "react"
+import { ArrowRight, BookOpen, Brain, Check, ChevronDown, FileUp, GraduationCap, Menu, Sparkles, Target, Trophy, Users, X, Zap } from "lucide-react"
 
+const exams = ["MDCAT", "ECAT", "CSS", "PMS", "NTS", "ETEA", "Police", "PPSC"]
 const features = [
-  { icon: Brain, title: "AI-Generated MCQs", desc: "Instant practice questions from any syllabus, tailored to your target test." },
-  { icon: FileUp, title: "Upload Your Notes", desc: "PDFs and images become smart question banks with AI extraction." },
-  { icon: BarChart3, title: "Track Your Progress", desc: "Accuracy, attempts and history: know exactly where you stand." },
-  { icon: MessagesSquare, title: "Community Forum", desc: "Discuss tips and preparation with fellow aspirants." },
+  { icon: Brain, title: "Practice that adapts", text: "AI-generated MCQs turn your syllabus and notes into focused practice." },
+  { icon: Target, title: "Know your weak spots", text: "See accuracy by topic and spend your time where it actually matters." },
+  { icon: Trophy, title: "Prepare like the real thing", text: "Timed tests, realistic difficulty and exam-specific question patterns." },
 ]
-
-const exams = ["NTS", "ETEA", "MDCAT", "ECAT", "CSS", "PMS", "Police", "Clerk", "PPSC", "FPSC"]
-
-const stats = [
-  { num: "12+", label: "Tests Covered", icon: BookOpen },
-  { num: "50K+", label: "MCQs Generated", icon: Zap },
-  { num: "10K+", label: "Aspirants", icon: Users },
-  { num: "95%", label: "Accuracy Rate", icon: Target },
-]
-
-const steps = [
-  { num: "01", title: "Pick Your Test", desc: "Choose from 12+ competitive exams with official syllabus coverage." },
-  { num: "02", title: "Practice with AI", desc: "Generate unlimited MCQs instantly. Upload notes for personalized questions." },
-  { num: "03", title: "Track & Improve", desc: "See weak areas, build streaks, and climb the leaderboard." },
-]
-
-const testimonials = [
-  { name: "Ahmed R.", exam: "MDCAT 2025", score: "92%", text: "The AI-generated questions were surprisingly close to the actual exam. My accuracy went from 60% to 85% in 3 weeks." },
-  { name: "Fatima K.", exam: "CSS", score: "Top 50", text: "Finally a prep platform that understands the Pakistani exam system. The subjective practice is a game changer." },
-  { name: "Usman T.", exam: "PPSC", score: "Selected", text: "Used it for 2 months before my interview. The mock tests felt exactly like the real thing." },
-]
-
 const faqs = [
-  { q: "How accurate are the AI-generated questions?", a: "Our AI is trained on official syllabi and past papers. Questions match the pattern, difficulty, and topic distribution of real exams." },
-  { q: "Can I upload my own notes?", a: "Yes. Upload PDFs or images and our RAG system extracts key concepts to generate personalized MCQs from your material." },
-  { q: "Is it free to use?", a: "The core practice features are free. Premium plans unlock unlimited uploads, advanced analytics, and mock tests." },
-  { q: "Which exams are supported?", a: "MDCAT, ECAT, CSS, PMS, PPSC, FPSC, NTS, ETEA, Police, Clerk, SST, CT, PST, and more." },
-  { q: "Does it work offline?", a: "Yes. Install as a PWA and practice cached questions even without internet." },
+  ["What exams can I prepare for?", "PakTest Prep is built around Pakistani competitive and admission tests including MDCAT, ECAT, CSS, PMS, NTS, ETEA, police, teaching and clerical exams."],
+  ["Can I use my own notes?", "Yes. Upload your study material and use it as the source for personalized AI practice."],
+  ["Is PakTest Prep free?", "The core preparation experience is designed to be accessible, with advanced capabilities added as the platform grows."],
 ]
 
-const sampleQuestions = [
-  {
-    test: "MDCAT",
-    question: "Which organelle is responsible for ATP production in eukaryotic cells?",
-    options: ["Ribosome", "Mitochondria", "Golgi apparatus", "Endoplasmic reticulum"],
-    answer: "Mitochondria",
-    explanation: "Mitochondria are known as the powerhouse of the cell. They generate most of the cell's supply of ATP through oxidative phosphorylation during aerobic respiration.",
-  },
-  {
-    test: "MDCAT",
-    question: "Which particle carries a negative electric charge?",
-    options: ["Proton", "Neutron", "Electron", "Photon"],
-    answer: "Electron",
-    explanation: "Electrons carry a negative charge of approximately -1.6 x 10^-19 coulombs. Protons are positive, neutrons are neutral, and photons carry no charge.",
-  },
-  {
-    test: "English",
-    question: "Choose the correct synonym of 'Abundant'.",
-    options: ["Scarce", "Plentiful", "Rare", "Minimal"],
-    answer: "Plentiful",
-    explanation: "'Abundant' means existing in large quantities. 'Plentiful' is its synonym, while scarce, rare and minimal are antonyms.",
-  },
-  {
-    test: "General Knowledge",
-    question: "What is the pH value of pure water at 25 degrees Celsius?",
-    options: ["5", "6", "7", "8"],
-    answer: "7",
-    explanation: "Pure water is neutral with a pH of 7 at 25 degrees Celsius, because the concentration of hydrogen ions equals the concentration of hydroxide ions.",
-  },
-]
-
-function FAQItem({ q, a }: { q: string; a: string }) {
+function Header() {
   const [open, setOpen] = useState(false)
-  return (
-    <div className="border-b border-border last:border-0">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between py-4 text-left text-sm font-medium text-foreground transition hover:text-primary"
-      >
-        {q}
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && <p className="pb-4 text-sm leading-relaxed text-muted-foreground">{a}</p>}
+  return <header className="sticky top-0 z-50 border-b border-[#e2ddd4]/80 bg-[#f3f0e9]/90 backdrop-blur-xl">
+    <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 lg:px-8">
+      <Link href="/" className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#5c2ac6] text-white"><GraduationCap className="h-5 w-5" /></span><span className="text-[15px] font-extrabold tracking-tight">PakTest Prep</span></Link>
+      <nav className="hidden items-center gap-8 md:flex"><Link href="#why" className="text-sm font-medium text-[#696a67] hover:text-[#1d2020]">Why PakTest</Link><Link href="#exams" className="text-sm font-medium text-[#696a67] hover:text-[#1d2020]">Exams</Link><Link href="#how" className="text-sm font-medium text-[#696a67] hover:text-[#1d2020]">How it works</Link></nav>
+      <div className="hidden items-center gap-3 md:flex"><Link href="/signin" className="px-3 py-2 text-sm font-semibold">Sign in</Link><Link href="/tests" className="rounded-full bg-[#5c2ac6] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5">Start practicing <ArrowRight className="ml-1 inline h-4 w-4" /></Link></div>
+      <button onClick={() => setOpen(!open)} className="md:hidden">{open ? <X /> : <Menu />}</button>
     </div>
-  )
+    {open && <div className="border-t border-[#e2ddd4] bg-[#f3f0e9] px-5 py-4 md:hidden"><div className="flex flex-col gap-1"><Link onClick={() => setOpen(false)} href="#why" className="rounded-xl p-3">Why PakTest</Link><Link onClick={() => setOpen(false)} href="#exams" className="rounded-xl p-3">Exams</Link><Link onClick={() => setOpen(false)} href="/signin" className="mt-2 rounded-xl bg-[#1d2020] p-3 text-center font-bold text-white">Sign in</Link></div></div>}
+  </header>
 }
 
-function SampleDemo() {
-  const [q] = useState(sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)])
-  const [picked, setPicked] = useState<string | null>(null)
-  const [showExpl, setShowExpl] = useState(false)
-  const answered = picked !== null
-  const isCorrect = picked === q.answer
-
-  return (
-    <div className="mt-12 rounded-xl border border-border bg-card p-5 text-left sm:p-6">
-      <div className="mb-3 inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground">
-        Try a sample {q.test} question
-      </div>
-      <h3 className="text-base font-semibold text-foreground sm:text-lg">{q.question}</h3>
-      <div className="mt-4 space-y-2">
-        {q.options.map((opt, j) => {
-          const isPick = picked === opt
-          const isAns = opt === q.answer
-          let cls = "border-border bg-card text-foreground hover:border-primary/40"
-          let badge = "bg-muted text-muted-foreground"
-          if (answered && isAns) {
-            cls = "border-primary bg-primary/5 text-foreground"
-            badge = "bg-primary text-primary-foreground"
-          } else if (answered && isPick && !isAns) {
-            cls = "border-red-500/60 bg-red-500/5 text-red-600"
-            badge = "bg-red-500 text-white"
-          } else if (answered) {
-            cls = "border-border/40 bg-card/50 text-muted-foreground"
-          }
-          return (
-            <button
-              key={j}
-              onClick={() => !answered && setPicked(opt)}
-              disabled={answered}
-              className={`flex w-full items-center gap-3 rounded-lg border px-3.5 py-2.5 text-left text-sm transition disabled:cursor-not-allowed ${cls}`}
-            >
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold ${badge}`}>
-                {String.fromCharCode(65 + j)}
-              </span>
-              <span className="flex-1">{opt}</span>
-              {answered && isAns && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
-              {answered && isPick && !isAns && <XCircle className="h-4 w-4 shrink-0 text-red-500" />}
-            </button>
-          )
-        })}
-      </div>
-      {answered && (
-        <div className={`mt-4 rounded-lg border p-3.5 ${isCorrect ? "border-primary/30 bg-primary/5" : "border-red-500/30 bg-red-500/5"}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              {isCorrect ? (
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-              ) : (
-                <XCircle className="h-4 w-4 text-red-500" />
-              )}
-              <span className="text-sm font-medium text-foreground">{isCorrect ? "Correct answer" : "Not quite"}</span>
-            </div>
-            <button onClick={() => setShowExpl(!showExpl)} className="text-xs text-muted-foreground transition hover:text-foreground">
-              Explanation
-            </button>
-          </div>
-          {showExpl && <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">{q.explanation}</p>}
-          <Link href="/tests" className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90">
-            Want more? Start Practicing <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function BackToTop() {
-  const [show, setShow] = useState(false)
-  if (typeof window !== "undefined") {
-    window.addEventListener("scroll", () => setShow(window.scrollY > 600))
-  }
-  return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={`fixed bottom-6 right-6 z-30 rounded-full bg-primary p-2.5 text-primary-foreground shadow-lg transition-all duration-300 hover:bg-primary/90 ${
-        show ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
-      }`}
-    >
-      <ChevronUp className="h-4 w-4" />
-    </button>
-  )
-}
-
-/* ── Landing Header ── */
-function LandingHeader() {
-  const [mobileOpen, setMobileOpen] = useState(false)
-
-  const navLinks = [
-    { label: "Tests", href: "/tests" },
-    { label: "Upload", href: "/upload" },
-    { label: "Forum", href: "/forum" },
-    { label: "Dashboard", href: "/dashboard" },
-  ]
-
-  return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <GraduationCap className="h-5 w-5" />
-          </div>
-          <span className="text-base font-semibold text-foreground">PakTest Prep</span>
-        </Link>
-
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Desktop CTA */}
-        <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Get Started
-          </Link>
-        </div>
-
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent hover:text-foreground md:hidden"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="border-t border-border bg-background px-4 py-3 md:hidden">
-          <nav className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileOpen(false)}
-              className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Get Started
-            </Link>
-          </nav>
-        </div>
-      )}
-    </header>
-  )
-}
+function Footer() { return <footer className="bg-[#1d2020] px-5 py-14 text-white lg:px-8"><div className="mx-auto max-w-7xl"><div className="grid gap-10 md:grid-cols-4"><div className="md:col-span-2"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#c3ff3d] text-[#1d2020]"><GraduationCap className="h-5 w-5" /></span><b>PakTest Prep</b></div><p className="mt-5 max-w-sm text-sm leading-6 text-white/55">A focused preparation platform for students and aspirants across Pakistan.</p></div><div><p className="mb-4 text-xs font-bold uppercase tracking-widest text-white/35">Explore</p><div className="space-y-3 text-sm text-white/65"><Link className="block hover:text-white" href="/tests">Practice tests</Link><Link className="block hover:text-white" href="/upload">Upload material</Link><Link className="block hover:text-white" href="/forum">Community</Link></div></div><div><p className="mb-4 text-xs font-bold uppercase tracking-widest text-white/35">Account</p><div className="space-y-3 text-sm text-white/65"><Link className="block hover:text-white" href="/signin">Sign in</Link><Link className="block hover:text-white" href="/settings">Settings</Link></div></div></div><div className="mt-12 border-t border-white/10 pt-6 text-xs text-white/35">© 2026 PakTest Prep. Built for better preparation.</div></div></footer> }
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-background text-foreground">
-      <LandingHeader />
-
-      {/* Hero */}
-      <section className="mx-auto max-w-4xl px-4 pt-12 pb-16 text-center sm:px-6 sm:pt-16 sm:pb-20">
-        <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-1.5 text-xs text-muted-foreground">
-          AI-Powered Test Preparation for Pakistan
+  return <main className="bg-[#f3f0e9] text-[#1d2020]">
+    <Header />
+    <section className="mx-auto max-w-7xl px-5 pb-20 pt-16 lg:px-8 lg:pb-28 lg:pt-24">
+      <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_.95fr]">
+        <div>
+          <div className="eyebrow inline-flex items-center gap-2 rounded-full bg-[#c3ff3d] px-4 py-2 text-[#1d2020]"><Sparkles className="h-3.5 w-3.5" /> Pakistan's focused test-prep workspace</div>
+          <h1 className="display-heading mt-7 max-w-4xl text-6xl sm:text-7xl lg:text-[92px]">Your exam. <span className="text-[#5c2ac6]">Your edge.</span></h1>
+          <p className="mt-7 max-w-xl text-base leading-7 text-[#696a67] sm:text-lg">Stop jumping between PDFs, random MCQs and forgotten notes. Practice smarter, understand your weak areas and walk into your test prepared.</p>
+          <div className="mt-9 flex flex-wrap gap-3"><Link href="/tests" className="rounded-full bg-[#5c2ac6] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#5c2ac6]/15 transition hover:-translate-y-0.5">Start practicing <ArrowRight className="ml-2 inline h-4 w-4" /></Link><Link href="/upload" className="rounded-full border border-[#cfc9be] bg-white px-6 py-3.5 text-sm font-bold transition hover:-translate-y-0.5">Upload your notes</Link></div>
+          <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-[#8a8882]"><span className="text-[#1d2020]">Built around</span>{exams.slice(0,5).map(e => <span key={e}>{e}</span>)}</div>
         </div>
-
-        <h1 className="mt-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
-          Crack every test.
-          <br />
-          <span className="text-primary">Practice smarter.</span>
-        </h1>
-
-        <p className="mx-auto mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
-          Generate MCQs from any syllabus or your own notes, track your accuracy, and join a community of aspirants.
-        </p>
-
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/tests"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-          >
-            Start Practicing <ArrowRight className="h-4 w-4" />
-          </Link>
-          <Link
-            href="/upload"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium text-foreground transition hover:bg-accent"
-          >
-            <FileUp className="h-4 w-4" />
-            Upload Material
-          </Link>
+        <div className="relative">
+          <div className="surface soft-shadow rotate-1 p-4 sm:p-5"><div className="rounded-[1rem] bg-[#f3f0e9] p-5 sm:p-7"><div className="flex items-center justify-between"><span className="eyebrow text-[#5c2ac6]">Practice studio</span><span className="rounded-full bg-white px-3 py-1 text-[10px] font-bold">MDCAT · Biology</span></div><h3 className="mt-7 text-xl font-extrabold leading-7 sm:text-2xl">Which organelle is responsible for ATP production in eukaryotic cells?</h3><div className="mt-6 space-y-2.5">{["Ribosome","Mitochondria","Golgi apparatus","Endoplasmic reticulum"].map((x,i)=><div key={x} className={i===1?"flex items-center gap-3 rounded-xl border-2 border-[#5c2ac6] bg-white p-3 text-sm font-bold":"flex items-center gap-3 rounded-xl border border-[#ddd8cf] bg-white p-3 text-sm"}><span className={i===1?"grid h-7 w-7 place-items-center rounded-lg bg-[#5c2ac6] text-xs text-white":"grid h-7 w-7 place-items-center rounded-lg bg-[#f3f0e9] text-xs font-bold"}>{String.fromCharCode(65+i)}</span>{x}{i===1&&<Check className="ml-auto h-4 w-4 text-[#5c2ac6]"/>}</div>)}</div><div className="mt-5 flex items-center justify-between rounded-xl bg-[#1d2020] p-4 text-white"><div><p className="text-[10px] uppercase tracking-widest text-white/40">Your accuracy</p><p className="mt-1 text-2xl font-extrabold">84%</p></div><div className="h-12 w-12 rounded-full border-4 border-[#c3ff3d] border-r-transparent" /></div></div></div>
+          <div className="absolute -bottom-5 -left-4 hidden rounded-2xl bg-[#c3ff3d] px-5 py-4 shadow-xl sm:block"><p className="text-[10px] font-bold uppercase tracking-widest">Daily goal</p><p className="mt-1 text-xl font-extrabold">20 questions</p></div>
         </div>
+      </div>
+    </section>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          {exams.map((e) => (
-            <span
-              key={e}
-              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:border-primary/30 hover:text-primary"
-            >
-              {e}
-            </span>
-          ))}
-        </div>
+    <section id="exams" className="border-y border-[#dfd9d0] bg-white"><div className="mx-auto max-w-7xl px-5 py-8 lg:px-8"><div className="flex flex-wrap items-center gap-x-7 gap-y-3"><span className="eyebrow text-[#9a978f]">Prepare for</span>{exams.map(e=><span key={e} className="text-sm font-extrabold tracking-tight text-[#4e504e]">{e}</span>)}</div></div></section>
 
-        <SampleDemo />
-      </section>
+    <section id="why" className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28"><div className="max-w-2xl"><p className="eyebrow text-[#5c2ac6]">Built for real preparation</p><h2 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">Less dashboard. More learning.</h2><p className="mt-5 text-[#696a67]">Every part of the product has one job: help you make better progress toward your exam.</p></div><div className="mt-12 grid gap-4 md:grid-cols-3">{features.map((f,i)=><article key={f.title} className="surface pressable p-7"><div className={i===1?"mb-12 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c3ff3d]":"mb-12 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3f0e9] text-[#5c2ac6]"}><f.icon className="h-5 w-5" /></div><p className="eyebrow text-[#aaa69d]">0{i+1}</p><h3 className="mt-3 text-xl font-extrabold">{f.title}</h3><p className="mt-3 text-sm leading-6 text-[#696a67]">{f.text}</p></article>)}</div></section>
 
-      {/* Stats */}
-      <section className="border-y border-border bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <s.icon className="h-4 w-4 text-primary" />
-                  <span className="text-2xl font-bold text-foreground">{s.num}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+    <section id="how" className="bg-[#5c2ac6] px-5 py-20 text-white lg:px-8 lg:py-28"><div className="mx-auto max-w-7xl"><div className="grid gap-12 lg:grid-cols-[.7fr_1.3fr]"><div><p className="eyebrow text-[#c3ff3d]">How it works</p><h2 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">A simpler way to prepare.</h2></div><div className="grid gap-8 sm:grid-cols-3">{[["01","Choose","Pick the exam and syllabus you are targeting."],["02","Practice","Solve focused questions and use your own material."],["03","Improve","Review mistakes, track accuracy and repeat." ]].map(([n,t,d])=><div key={n} className="border-t border-white/20 pt-5"><span className="text-sm font-bold text-[#c3ff3d]">{n}</span><h3 className="mt-7 text-xl font-extrabold">{t}</h3><p className="mt-3 text-sm leading-6 text-white/65">{d}</p></div>)}</div></div></div></section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Everything you need to ace your exam</h2>
-          <p className="mt-2 text-muted-foreground">Built by aspirants, for aspirants.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f) => (
-            <div
-              key={f.title}
-              className="rounded-xl border border-border bg-card p-5 transition hover:border-primary/30"
-            >
-              <span className="inline-flex rounded-lg bg-primary/10 p-2 text-primary">
-                <f.icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-4 text-sm font-semibold text-foreground">{f.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+    <section className="mx-auto max-w-4xl px-5 py-20 lg:py-28"><div className="text-center"><p className="eyebrow text-[#5c2ac6]">Questions</p><h2 className="mt-4 text-4xl font-extrabold tracking-tight">Before you start</h2></div><div className="mt-10 divide-y divide-[#ddd8cf]">{faqs.map(([q,a])=><details key={q} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between text-base font-bold">{q}<ChevronDown className="h-5 w-5 transition group-open:rotate-180" /></summary><p className="max-w-2xl pt-3 text-sm leading-6 text-[#696a67]">{a}</p></details>)}</div></section>
 
-      {/* How it works */}
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">How it works</h2>
-          <p className="mt-2 text-muted-foreground">From zero to exam-ready in three steps.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {steps.map((s, i) => (
-            <div key={s.num} className="relative rounded-xl border border-border bg-card p-5">
-              <span className="text-3xl font-bold text-muted">{s.num}</span>
-              <h3 className="mt-2 text-base font-semibold text-foreground">{s.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
-              {i < 2 && (
-                <div className="absolute -right-2 top-1/2 hidden -translate-y-1/2 md:block">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="border-y border-border bg-card py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mb-10 text-center">
-            <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Loved by aspirants</h2>
-            <p className="mt-2 text-muted-foreground">Real results from real students.</p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-xl border border-border bg-background p-5">
-                <div className="flex items-center gap-1 text-amber-500">
-                  {[...Array(5)].map((_, j) => (
-                    <Star key={j} className="h-3.5 w-3.5 fill-current" />
-                  ))}
-                </div>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">&ldquo;{t.text}&rdquo;</p>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {t.name.split(" ").map((n) => n[0]).join("")}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.exam} · {t.score}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
-        <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Frequently asked questions</h2>
-          <p className="mt-2 text-muted-foreground">Got questions? We have answers.</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-5">
-          {faqs.map((f) => (
-            <FAQItem key={f.q} q={f.q} a={f.a} />
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="mx-auto max-w-4xl px-4 pb-20 text-center sm:px-6">
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-8 sm:p-10">
-          <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Ready to crack your exam?</h2>
-          <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-            Join thousands of aspirants practicing smarter every day. It takes 30 seconds to start.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/tests"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-            >
-              Start Free Practice <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 text-sm font-medium text-foreground transition hover:bg-accent"
-            >
-              View Dashboard
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <div className="flex items-center gap-2 font-semibold text-foreground">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <GraduationCap className="h-4 w-4" />
-                </div>
-                PakTest Prep
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                AI-powered test preparation built for Pakistan&apos;s competitive exams. Practice smarter, score higher.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground">Product</h4>
-              <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <li><Link href="/tests" className="transition hover:text-foreground">Practice Tests</Link></li>
-                <li><Link href="/upload" className="transition hover:text-foreground">Upload Notes</Link></li>
-                <li><Link href="/dashboard" className="transition hover:text-foreground">Dashboard</Link></li>
-                <li><Link href="/forum" className="transition hover:text-foreground">Community</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground">Tests</h4>
-              <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <li><Link href="/tests/MDCAT" className="transition hover:text-foreground">MDCAT</Link></li>
-                <li><Link href="/tests/ECAT" className="transition hover:text-foreground">ECAT</Link></li>
-                <li><Link href="/tests/CSS%20%26%20PMS" className="transition hover:text-foreground">CSS & PMS</Link></li>
-                <li><Link href="/tests" className="transition hover:text-foreground">View All</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-foreground">Company</h4>
-              <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
-                <li><span className="cursor-pointer transition hover:text-foreground">About</span></li>
-                <li><span className="cursor-pointer transition hover:text-foreground">Privacy</span></li>
-                <li><span className="cursor-pointer transition hover:text-foreground">Terms</span></li>
-                <li><span className="cursor-pointer transition hover:text-foreground">Contact</span></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
-            <p className="text-xs text-muted-foreground">© 2026 PakTest Prep. Built for Pakistan&apos;s future.</p>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              Made with <Zap className="h-3 w-3 text-primary" /> in Pakistan
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <BackToTop />
-    </main>
-  )
+    <section className="px-5 pb-20 lg:px-8 lg:pb-28"><div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#c3ff3d] p-8 sm:p-12 lg:p-16"><div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end"><div><p className="eyebrow">Your next step</p><h2 className="mt-4 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">Turn today's hour into tomorrow's confidence.</h2></div><Link href="/tests" className="inline-flex items-center justify-center rounded-full bg-[#1d2020] px-6 py-3.5 text-sm font-bold text-white">Start practicing <ArrowRight className="ml-2 h-4 w-4" /></Link></div></div></section>
+    <Footer />
+  </main>
 }
